@@ -14,6 +14,8 @@ impl LFSR {
     }
     //clock LFSR
     fn clock(&mut self) -> u16 {
+        // https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Example_polynomials_for_maximal_LFSRs
+        // this is a maximal LFSR that results in the largest possible period
         let bit: u16 =
             (self.state ^ (self.state >> 1) ^ (self.state >> 3) ^ (self.state >> 12)) & 0b1;
         self.state = (self.state >> 1) | (bit << 15);
