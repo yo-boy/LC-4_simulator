@@ -1,56 +1,5 @@
-#[derive(PartialEq)]
-struct LFSR {
-    state: u16,
-}
-
-impl LFSR {
-    // create new LFSR
-    fn new() -> LFSR {
-        LFSR { state: (0) }
-    }
-    // set seed of LFSR
-    fn set_seed(&mut self, seed: u16) {
-        self.state = seed;
-    }
-    //clock LFSR
-    fn clock(&mut self) -> u16 {
-        // https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Example_polynomials_for_maximal_LFSRs
-        // this is a maximal LFSR that results in the largest possible period
-        let bit: u16 =
-            (self.state ^ (self.state >> 1) ^ (self.state >> 3) ^ (self.state >> 12)) & 0b1;
-        self.state = (self.state >> 1) | (bit << 15);
-        return bit;
-    }
-}
-
-#[derive(PartialEq)]
-struct ASG {
-    clock: LFSR,
-    first: LFSR,
-    second: LFSR,
-}
-
-impl ASG {
-    fn new() -> ASG {
-        ASG {
-            clock: (LFSR { state: (0) }),
-            first: (LFSR { state: (0) }),
-            second: (LFSR { state: (0) }),
-        }
-    }
-    fn set_seed(&mut self, clock: u16, first: u16, second: u16) {
-        self.clock.set_seed(clock);
-        self.first.set_seed(first);
-        self.second.set_seed(second);
-    }
-    fn clock(&mut self) -> u16 {
-        if self.clock.clock() == 1 {
-            return self.first.clock();
-        } else {
-            return self.second.clock();
-        }
-    }
-}
+mod hardware;
+use crate::hardware::prng::{ASG, LFSR};
 
 fn main() {
     println!("Hello, world!");
