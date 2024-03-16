@@ -24,11 +24,11 @@ fn main() {
     asg.set_seed(state, first, second);
     asg_orig.set_seed(state, first, second);
     period = 1;
-    //asg.clock();
-    //while asg != asg_orig {
-    //    asg.clock();
-    //    period += 1;
-    //}
+    asg.clock();
+    while asg != asg_orig {
+        asg.clock();
+        period += 1;
+    }
     println!("ASG period: {}", period);
     let test: [u16; 65536] = [0u16; 2usize.pow(16)];
     println!("{}", test[0]);
