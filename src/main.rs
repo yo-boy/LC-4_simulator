@@ -108,21 +108,119 @@ mod tokenizer {
         PUTSP,
     }
 
-    pub(crate) fn match_opcode_short(instruction: u16) -> Operation {
+    fn match_opcode(instruction: u16) -> Operation {
         match instruction >> 11 & 0b11111 {
-            _ => todo!(),
+            0b00001 => parse_add(instruction),
+            0b00010 => parse_and(instruction),
+            0b00011 => parse_xor(instruction),
+            0b00100 => Operation::BR,
+            0b00101 => {
+                if instruction >> 7 & 0b111 == 0b111 {
+                    Operation::RET
+                } else {
+                    Operation::JUMP
+                }
+            }
+            0b00110 => {
+                if check_10(instruction) {
+                    Operation::JSR
+                } else {
+                    Operation::JSRR
+                }
+            }
+            0b01000 => {
+                if check_10(instruction) {
+                    Operation::LDa
+                } else {
+                    Operation::LD
+                }
+            }
+            0b01001 => Operation::ST,
+            0b00111 => {
+                if check_10(instruction) {
+                    Operation::STR16
+                } else {
+                    Operation::STR
+                }
+            }
+            0b01010 => Operation::NOT,
+            0b01100 => parse_trap(instruction),
+            0b01101 => Operation::RTI,
+            _ => panic!("invalid instruction"),
         }
     }
 
-    pub(crate) fn match_opcode_long(instruction: u16) -> Operation {
-        match instruction >> 11 & 0b11111 {
-            _ => todo!(),
+    fn check_10(instruction: u16) -> bool {
+        instruction >> 10 & 0b1 == 1
+    }
+
+    fn parse_trap(instruction: u16) -> Operation {
+        let instruction = instruction & 0b11111111;
+        match instruction {
+            0x20 => Operation::GETC,
+            0x21 => Operation::OUT,
+            0x22 => Operation::PUTS,
+            0x23 => Operation::IN,
+            0x24 => Operation::PUTSP,
+            0x25 => Operation::HALT,
+            0x26 => Operation::LSD,
+            0x27 => Operation::LPN,
+            0x28 => Operation::CLRP,
+            _ => Operation::TRAP,
         }
     }
 
-    pub(crate) fn tokenize(encoded_instruction: u16, second_operand: Option<u16>) {
-        if encoded_instruction >> 10 & 0b1 == 0 {
+    fn parse_add(instruction: u16) -> Operation {
+        if instruction >> 10 & 0b1 == 0 {
+            if instruction >> 3 & 0b1 == 1 {
+                Operation::ADDi
+            } else {
+                Operation::ADD
+            }
         } else {
+            if instruction >> 3 & 0b1 == 1 {
+                Operation::ADDi16
+            } else {
+                Operation::ADDa
+            }
         }
+    }
+    fn parse_and(instruction: u16) -> Operation {
+        if instruction >> 10 & 0b1 == 0 {
+            if instruction >> 3 & 0b1 == 1 {
+                Operation::ANDi
+            } else {
+                Operation::AND
+            }
+        } else {
+            if instruction >> 3 & 0b1 == 1 {
+                Operation::ANDi16
+            } else {
+                Operation::ANDa
+            }
+        }
+    }
+    fn parse_xor(instruction: u16) -> Operation {
+        if instruction >> 10 & 0b1 == 0 {
+            if instruction >> 3 & 0b1 == 1 {
+                Operation::XORi
+            } else {
+                Operation::XOR
+            }
+        } else {
+            if instruction >> 3 & 0b1 == 1 {
+                Operation::XORi16
+            } else {
+                Operation::XORa
+            }
+        }
+    }
+
+    pub fn tokenize(encoded_instruction: u16, second_operand: Option<u16>) {
+        let operation = match_opcode(encoded_instruction);
+    }
+
+    pub struct Instruction {
+        op: Operation,
     }
 }
