@@ -54,7 +54,7 @@ impl Operation {
     }
 }
 pub enum Operand {
-    BRFlag,
+    BR(Flags),
     Address(u16),
     Imm16(i16),
     Imm7(ux::i7),
@@ -63,7 +63,7 @@ pub enum Operand {
     Register(ux::u3),
 }
 
-pub struct BRFlag {
+pub struct Flags {
     n: bool,
     z: bool,
     p: bool,
@@ -189,37 +189,153 @@ pub fn tokenize(encoded_instruction: u16, second_operand: Option<u16>) -> Instru
         parse_single(operation, encoded_instruction)
     }
 }
+
+fn parse_single(operation: Operation, instruction: u16) -> Instruction {
+    match operation {
+        Operation::ADD => parse_def(operation, instruction),
+        Operation::ADDi => parse_i(operation, instruction),
+        Operation::AND => parse_def(operation, instruction),
+        Operation::ANDi => parse_i(operation, instruction),
+        Operation::XOR => parse_def(operation, instruction),
+        Operation::XORi => parse_i(operation, instruction),
+        Operation::JUMP => parse_single_reg(operation, instruction),
+        Operation::RET => operation_to_instruction(operation),
+        Operation::JSRR => parse_single_reg(operation, instruction),
+        Operation::LD => Instruction {
+            operation,
+            dr: Some(get_dr(instruction)),
+            operand1: Some(get_imm7(instruction)),
+            operand2: None,
+        },
+        Operation::STR => Instruction {
+            operation,
+            dr: Some(get_dr(instruction)),
+            operand1: Some(get_imm7(instruction)),
+            operand2: None,
+        },
+        Operation::NOT => Instruction {
+            operation,
+            dr: Some(get_dr(instruction)),
+            operand1: Some(get_sr(instruction)),
+            operand2: None,
+        },
+        Operation::TRAP => panic!("unexpected TRAP instruction not supported"),
+        Operation::RTI => operation_to_instruction(operation),
+        Operation::LSD => operation_to_instruction(operation),
+        Operation::LPN => operation_to_instruction(operation),
+        Operation::CLRP => operation_to_instruction(operation),
+        Operation::HALT => operation_to_instruction(operation),
+        Operation::PUTS => operation_to_instruction(operation),
+        Operation::GETC => operation_to_instruction(operation),
+        Operation::OUT => operation_to_instruction(operation),
+        Operation::IN => operation_to_instruction(operation),
+        Operation::PUTSP => operation_to_instruction(operation),
+        _ => panic!("long instruction in parse_single"),
+    }
+}
+
+fn parse_single_reg(operation: Operation, instruction: u16) -> Instruction {
+    Instruction {
+        operation,
+        dr: Some(get_dr(instruction)),
+        operand1: None,
+        operand2: None,
+    }
+}
+
+fn parse_def(operation: Operation, instruction: u16) -> Instruction {
+    Instruction {
+        operation,
+        dr: Some(get_dr(instruction)),
+        operand1: Some(get_sr(instruction)),
+        operand2: Some(get_sr2(instruction)),
+    }
+}
+fn parse_i(operation: Operation, instruction: u16) -> Instruction {
+    Instruction {
+        operation,
+        dr: Some(get_dr(instruction)),
+        operand1: Some(get_sr(instruction)),
+        operand2: Some(get_imm3(instruction)),
+    }
+}
+fn operation_to_instruction(operation: Operation) -> Instruction {
+    Instruction {
+        operation,
+        dr: None,
+        operand1: None,
+        operand2: None,
+    }
+}
+
 fn parse_double(operation: Operation, instruction: u16, operand: u16) -> Instruction {
     match operation {
-        Operation::ADDi16 => Instruction {
+        Operation::ADDi16 => parse_i16(operation, instruction, operand),
+        Operation::ADDa => parse_a(operation, instruction, operand),
+        Operation::ANDi16 => parse_i16(operation, instruction, operand),
+        Operation::ANDa => parse_a(operation, instruction, operand),
+        Operation::XORi16 => parse_i16(operation, instruction, operand),
+        Operation::XORa => parse_a(operation, instruction, operand),
+        Operation::BR => parse_br(instruction, operand),
+        Operation::JSR => Instruction {
+            operation,
+            dr: None,
+            operand1: None,
+            operand2: Some(get_addr(operand)),
+        },
+        Operation::LDa => Instruction {
             operation,
             dr: Some(get_dr(instruction)),
-            sr: Some(get_sr(instruction)),
-            operand: Some(get_imm16(operand)),
+            operand1: None,
+            operand2: Some(get_addr(operand)),
         },
-        Operation::ADDa => Instruction {
+        Operation::ST => Instruction {
             operation,
             dr: Some(get_dr(instruction)),
-            sr: Some(get_sr(instruction)),
-            operand: Some(get_addr(operand)),
+            operand1: None,
+            operand2: Some(get_addr(operand)),
         },
-        Operation::ANDi16 => todo!(),
-        Operation::ANDa => todo!(),
-        Operation::XORi16 => todo!(),
-        Operation::XORa => todo!(),
-        Operation::BR => todo!(),
-        Operation::JSR => todo!(),
-        Operation::LDa => todo!(),
-        Operation::ST => todo!(),
-        Operation::STR16 => todo!(),
+        Operation::STR16 => Instruction {
+            operation,
+            dr: Some(get_dr(instruction)),
+            operand1: None,
+            operand2: Some(get_imm16(operand)),
+        },
         _ => panic!("short instruction in parse_double"),
     }
 }
 
+fn parse_br(instruction: u16, operand: u16) -> Instruction {
+    let instruction = instruction >> 7 & 0b111;
+    let flag = Operand::BR(Flags {
+        n: instruction >> 2 == 1,
+        z: instruction >> 1 & 0b1 == 1,
+        p: instruction & 0b1 == 1,
+    });
+    Instruction {
+        operation: Operation::BR,
+        dr: None,
+        operand1: Some(flag),
+        operand2: Some(Operand::Address(operand)),
+    }
+}
 
+fn parse_a(operation: Operation, instruction: u16, operand: u16) -> Instruction {
+    Instruction {
+        operation,
+        dr: Some(get_dr(instruction)),
+        operand1: Some(get_sr(instruction)),
+        operand2: Some(get_addr(operand)),
+    }
+}
 
-fn parse_single(operation: Operation, encoded_instruction: u16) -> Instruction {
-    todo!()
+fn parse_i16(operation: Operation, instruction: u16, operand: u16) -> Instruction {
+    Instruction {
+        operation,
+        dr: Some(get_dr(instruction)),
+        operand1: Some(get_sr(instruction)),
+        operand2: Some(get_imm16(operand)),
+    }
 }
 
 fn get_addr(address: u16) -> Operand {
@@ -262,6 +378,6 @@ fn get_imm16(operand: u16) -> Operand {
 pub struct Instruction {
     operation: Operation,
     dr: Option<Operand>,
-    sr: Option<Operand>,
-    operand: Option<Operand>,
+    operand1: Option<Operand>,
+    operand2: Option<Operand>,
 }
