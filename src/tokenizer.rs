@@ -34,7 +34,6 @@ pub enum Operation {
     IN,
     PUTSP,
 }
-
 impl Operation {
     fn is_double(&self) -> bool {
         match self {
@@ -62,12 +61,32 @@ pub enum Operand {
     TrapVect(u8),
     Register(ux::u3),
 }
-
+pub struct Instruction {
+    operation: Operation,
+    dr: Option<Operand>,
+    operand1: Option<Operand>,
+    operand2: Option<Operand>,
+}
 pub struct Flags {
     n: bool,
     z: bool,
     p: bool,
 }
+
+pub fn tokenize(encoded_instruction: u16, second_operand: Option<u16>) -> Instruction {
+    let operation = match_opcode(encoded_instruction);
+    if operation.is_double() {
+        parse_double(
+            operation,
+            encoded_instruction,
+            second_operand.expect("32 bit operand parse error"),
+        )
+    } else {
+        parse_single(operation, encoded_instruction)
+    }
+}
+
+// extract operation from instruction
 
 fn match_opcode(instruction: u16) -> Operation {
     match instruction >> 11 & 0b11111 {
@@ -177,19 +196,9 @@ fn parse_xor(instruction: u16) -> Operation {
     }
 }
 
-pub fn tokenize(encoded_instruction: u16, second_operand: Option<u16>) -> Instruction {
-    let operation = match_opcode(encoded_instruction);
-    if operation.is_double() {
-        parse_double(
-            operation,
-            encoded_instruction,
-            second_operand.expect("32 bit operand parse error"),
-        )
-    } else {
-        parse_single(operation, encoded_instruction)
-    }
-}
+// match parsed operations and create instructions
 
+// parse single length insntructions
 fn parse_single(operation: Operation, instruction: u16) -> Instruction {
     match operation {
         Operation::ADD => parse_def(operation, instruction),
@@ -233,7 +242,7 @@ fn parse_single(operation: Operation, instruction: u16) -> Instruction {
         _ => panic!("long instruction in parse_single"),
     }
 }
-
+//helpers for single length instruction parsing
 fn parse_single_reg(operation: Operation, instruction: u16) -> Instruction {
     Instruction {
         operation,
@@ -242,7 +251,6 @@ fn parse_single_reg(operation: Operation, instruction: u16) -> Instruction {
         operand2: None,
     }
 }
-
 fn parse_def(operation: Operation, instruction: u16) -> Instruction {
     Instruction {
         operation,
@@ -268,6 +276,7 @@ fn operation_to_instruction(operation: Operation) -> Instruction {
     }
 }
 
+// parse double length intsructions
 fn parse_double(operation: Operation, instruction: u16, operand: u16) -> Instruction {
     match operation {
         Operation::ADDi16 => parse_i16(operation, instruction, operand),
@@ -304,7 +313,7 @@ fn parse_double(operation: Operation, instruction: u16, operand: u16) -> Instruc
         _ => panic!("short instruction in parse_double"),
     }
 }
-
+// helpers for double length instruction parsing
 fn parse_br(instruction: u16, operand: u16) -> Instruction {
     let instruction = instruction >> 7 & 0b111;
     let flag = Operand::BR(Flags {
@@ -319,7 +328,6 @@ fn parse_br(instruction: u16, operand: u16) -> Instruction {
         operand2: Some(Operand::Address(operand)),
     }
 }
-
 fn parse_a(operation: Operation, instruction: u16, operand: u16) -> Instruction {
     Instruction {
         operation,
@@ -328,7 +336,6 @@ fn parse_a(operation: Operation, instruction: u16, operand: u16) -> Instruction 
         operand2: Some(get_addr(operand)),
     }
 }
-
 fn parse_i16(operation: Operation, instruction: u16, operand: u16) -> Instruction {
     Instruction {
         operation,
@@ -338,6 +345,7 @@ fn parse_i16(operation: Operation, instruction: u16, operand: u16) -> Instructio
     }
 }
 
+// parse operands
 fn get_addr(address: u16) -> Operand {
     Operand::Address(address)
 }
@@ -373,11 +381,4 @@ fn get_imm7(instruction: u16) -> Operand {
 }
 fn get_imm16(operand: u16) -> Operand {
     Operand::Imm16(operand as i16)
-}
-
-pub struct Instruction {
-    operation: Operation,
-    dr: Option<Operand>,
-    operand1: Option<Operand>,
-    operand2: Option<Operand>,
 }
