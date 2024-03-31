@@ -6,6 +6,7 @@ mod tokenizer;
 use prng::{ASG, LFSR};
 use reader::read_input_files;
 use std::path::PathBuf;
+use tokenizer::tokenize;
 use ux::{i3, u3, u7};
 
 struct PSR {
@@ -66,4 +67,7 @@ fn main() {
     }
 }
 
-
+// note to self, this is important, you need to work on the read execute cycle now, and make sure to handle unexpected data the same way a processor should (exception I assume)
+fn tokenize_helper() {
+    todo!()
+}

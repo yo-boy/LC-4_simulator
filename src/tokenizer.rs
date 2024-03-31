@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Operation {
     ADD,
     ADDi,
@@ -52,6 +53,7 @@ impl Operation {
         }
     }
 }
+#[derive(Debug)]
 pub enum Operand {
     BR(Flags),
     Address(u16),
@@ -61,12 +63,14 @@ pub enum Operand {
     TrapVect(u8),
     Register(ux::u3),
 }
+#[derive(Debug)]
 pub struct Instruction {
     operation: Operation,
     dr: Option<Operand>,
     operand1: Option<Operand>,
     operand2: Option<Operand>,
 }
+#[derive(Debug)]
 pub struct Flags {
     n: bool,
     z: bool,
