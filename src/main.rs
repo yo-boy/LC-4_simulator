@@ -28,10 +28,13 @@ struct Machine {
 }
 
 impl Machine {
-    pub fn new() -> Machine {
+    pub fn new(mem: Option<[u16; 65536]>) -> Machine {
         Machine {
             asg: ASG::new(),
-            memory: [0b0u16; 65536],
+            memory: (match mem {
+                Some(mem) => mem,
+                None => [0b0u16; 65536],
+            }),
             pc: 0,
             register: [0b0u16; 8],
             usp: 0xFDFF,
@@ -65,6 +68,8 @@ fn main() {
     for i in 0x3000..0x3011 {
         println!("0x{:04x}: {:016b}", i, out[i]);
     }
+
+    let lc4 = Machine::new(Some(out));
 }
 
 // note to self, this is important, you need to work on the read execute cycle now, and make sure to handle unexpected data the same way a processor should (exception I assume)
