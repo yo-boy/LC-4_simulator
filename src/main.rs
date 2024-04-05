@@ -180,5 +180,3 @@ fn main() {
 }
 
 mod executer {}
-
-// note to self, this is important, you need to work on the read execute cycle now, and make sure to handle unexpected data the same way a processor should (exception I assume)
