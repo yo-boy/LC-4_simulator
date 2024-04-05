@@ -1,3 +1,5 @@
+use ux::{i3, i7, u3};
+
 #[derive(Debug, PartialEq)]
 pub enum Operation {
     ADD,
@@ -362,33 +364,33 @@ fn get_addr(address: u16) -> Operand {
     Operand::Address(address)
 }
 fn get_dr(instruction: u16) -> Operand {
-    let out: ux::u3 = ux::u3::new((instruction >> 7 & 0b111u16) as u8);
+    let out: u3 = u3::new((instruction >> 7 & 0b111u16) as u8);
     Operand::Register(out)
 }
 fn get_sr(instruction: u16) -> Operand {
-    let out: ux::u3 = ux::u3::new((instruction >> 4 & 0b111u16) as u8);
+    let out: u3 = u3::new((instruction >> 4 & 0b111u16) as u8);
     Operand::Register(out)
 }
 fn get_sr2(instruction: u16) -> Operand {
-    let out: ux::u3 = ux::u3::new((instruction & 0b111u16) as u8);
+    let out: u3 = u3::new((instruction & 0b111u16) as u8);
     Operand::Register(out)
 }
 fn get_imm3(instruction: u16) -> Operand {
     Operand::Imm3(if instruction >> 2 & 0b1 == 1 {
         let num = instruction | 0b1111_1111_1111_1100;
-        ux::i3::new(num as i8)
+        i3::new(num as i8)
     } else {
         let num = instruction & 0b0000_0000_0000_0011;
-        ux::i3::new(num as i8)
+        i3::new(num as i8)
     })
 }
 fn get_imm7(instruction: u16) -> Operand {
     Operand::Imm7(if instruction >> 6 & 0b1 == 1 {
         let num = instruction | 0b1111_1111_1100_0000;
-        ux::i7::new(num as i8)
+        i7::new(num as i8)
     } else {
         let num = instruction & 0b0000_0000_0011_1111;
-        ux::i7::new(num as i8)
+        i7::new(num as i8)
     })
 }
 fn get_imm16(operand: u16) -> Operand {
