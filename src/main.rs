@@ -116,13 +116,16 @@ impl Machine {
             if check_instruction_double(self.memory[self.pc]) {
                 println!(
                     "exectuing: {:?}",
-                    tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1]))
+                    tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1])).unwrap()
                 );
                 self.simulate_instruction().unwrap();
                 self.pretty_print();
                 self.pc += 2;
             } else {
-                println!("executing: {:?}", tokenize(self.memory[self.pc], None));
+                println!(
+                    "executing: {:?}",
+                    tokenize(self.memory[self.pc], None).unwrap()
+                );
                 self.simulate_instruction().unwrap();
                 self.pretty_print();
                 self.pc += 1;
@@ -133,15 +136,16 @@ impl Machine {
 
     // pretty print all info
     fn pretty_print(&mut self) {
-        println!("PC: {:04x}", self.pc);
+        println!("PC: 0x{:04x}", self.pc);
         self.print_registers();
+        println!("");
         self.print_pretty_memory();
         println!("");
     }
 
     // print memory around PC
     fn print_pretty_memory(&mut self) {
-        for i in (self.pc - 2)..(self.pc + 2) {
+        for i in (self.pc)..(self.pc + 2) {
             println!("0x{:04x}: {:016b}", i, self.memory[i]);
         }
     }
@@ -169,33 +173,15 @@ fn main() {
     for i in 0x3000..0x3011 {
         println!("0x{:04x}: {:016b}", i, out[i]);
     }
+    println!("");
 
     let mut lc4 = Machine::new(Some(out));
-
-    // println!("{:?}", tokenize(out[0x3001], None));
-
-    // let mut halt_flag: bool = true;
-    // let mut i = 0x3000;
-    // while (i < 0x3011) & (halt_flag) {
-    //     if check_instruction_double(out[i]) {
-    //         println!("{:?}", tokenize(out[i], Some(out[i + 1])));
-    //         i += 2;
-    //     } else {
-    //         println!("{:?}", tokenize(out[i], None));
-    //         if tokenize(out[i], None).unwrap().operation == Operation::HALT {
-    //             halt_flag = false;
-    //         }
-    //         i += 1;
-    //     }
-    // }
 
     lc4.run_machine().unwrap();
 }
 
 mod executer {
     use crate::{tokenizer::Instruction, Machine};
-
-    fn add(machine: &mut Machine, inst: Instruction) {}
 }
 
 // note to self, this is important, you need to work on the read execute cycle now, and make sure to handle unexpected data the same way a processor should (exception I assume)
