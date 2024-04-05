@@ -35,6 +35,7 @@ pub enum Operation {
     IN,
     PUTSP,
 }
+
 impl Operation {
     fn is_double(&self) -> bool {
         match self {
