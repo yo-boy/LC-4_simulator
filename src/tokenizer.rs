@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Operation {
     ADD,
     ADDi,
@@ -65,10 +65,10 @@ pub enum Operand {
 }
 #[derive(Debug)]
 pub struct Instruction {
-    operation: Operation,
-    dr: Option<Operand>,
-    operand1: Option<Operand>,
-    operand2: Option<Operand>,
+    pub operation: Operation,
+    pub dr: Option<Operand>,
+    pub operand1: Option<Operand>,
+    pub operand2: Option<Operand>,
 }
 #[derive(Debug)]
 pub struct Flags {
@@ -134,7 +134,7 @@ fn match_opcode(instruction: u16) -> Operation {
     }
 }
 
-fn check_instruction_double(instruction: u16) -> bool {
+pub fn check_instruction_double(instruction: u16) -> bool {
     instruction >> 10 & 0b1 == 1
 }
 
