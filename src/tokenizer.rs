@@ -77,7 +77,10 @@ pub struct Flags {
     p: bool,
 }
 
-pub fn tokenize(encoded_instruction: u16, second_operand: Option<u16>) -> Instruction {
+pub fn tokenize(
+    encoded_instruction: u16,
+    second_operand: Option<u16>,
+) -> Result<Instruction, String> {
     let operation = match_opcode(encoded_instruction);
     if operation.is_double() {
         parse_double(
@@ -203,47 +206,47 @@ fn parse_xor(instruction: u16) -> Operation {
 // match parsed operations and create instructions
 
 // parse single length insntructions
-fn parse_single(operation: Operation, instruction: u16) -> Instruction {
+fn parse_single(operation: Operation, instruction: u16) -> Result<Instruction, String> {
     match operation {
-        Operation::ADD => parse_def(operation, instruction),
-        Operation::ADDi => parse_i(operation, instruction),
-        Operation::AND => parse_def(operation, instruction),
-        Operation::ANDi => parse_i(operation, instruction),
-        Operation::XOR => parse_def(operation, instruction),
-        Operation::XORi => parse_i(operation, instruction),
-        Operation::JUMP => parse_single_reg(operation, instruction),
-        Operation::RET => operation_to_instruction(operation),
-        Operation::JSRR => parse_single_reg(operation, instruction),
-        Operation::LD => Instruction {
+        Operation::ADD => Ok(parse_def(operation, instruction)),
+        Operation::ADDi => Ok(parse_i(operation, instruction)),
+        Operation::AND => Ok(parse_def(operation, instruction)),
+        Operation::ANDi => Ok(parse_i(operation, instruction)),
+        Operation::XOR => Ok(parse_def(operation, instruction)),
+        Operation::XORi => Ok(parse_i(operation, instruction)),
+        Operation::JUMP => Ok(parse_single_reg(operation, instruction)),
+        Operation::RET => Ok(operation_to_instruction(operation)),
+        Operation::JSRR => Ok(parse_single_reg(operation, instruction)),
+        Operation::LD => Ok(Instruction {
             operation,
             dr: Some(get_dr(instruction)),
             operand1: Some(get_imm7(instruction)),
             operand2: None,
-        },
-        Operation::STR => Instruction {
+        }),
+        Operation::STR => Ok(Instruction {
             operation,
             dr: Some(get_dr(instruction)),
             operand1: Some(get_imm7(instruction)),
             operand2: None,
-        },
-        Operation::NOT => Instruction {
+        }),
+        Operation::NOT => Ok(Instruction {
             operation,
             dr: Some(get_dr(instruction)),
             operand1: Some(get_sr(instruction)),
             operand2: None,
-        },
-        Operation::TRAP => panic!("unexpected TRAP instruction not supported"),
-        Operation::RTI => operation_to_instruction(operation),
-        Operation::LSD => operation_to_instruction(operation),
-        Operation::LPN => operation_to_instruction(operation),
-        Operation::CLRP => operation_to_instruction(operation),
-        Operation::HALT => operation_to_instruction(operation),
-        Operation::PUTS => operation_to_instruction(operation),
-        Operation::GETC => operation_to_instruction(operation),
-        Operation::OUT => operation_to_instruction(operation),
-        Operation::IN => operation_to_instruction(operation),
-        Operation::PUTSP => operation_to_instruction(operation),
-        _ => panic!("long instruction in parse_single"),
+        }),
+        Operation::TRAP => Err("unexpected TRAP instruction not supported".to_string()),
+        Operation::RTI => Ok(operation_to_instruction(operation)),
+        Operation::LSD => Ok(operation_to_instruction(operation)),
+        Operation::LPN => Ok(operation_to_instruction(operation)),
+        Operation::CLRP => Ok(operation_to_instruction(operation)),
+        Operation::HALT => Ok(operation_to_instruction(operation)),
+        Operation::PUTS => Ok(operation_to_instruction(operation)),
+        Operation::GETC => Ok(operation_to_instruction(operation)),
+        Operation::OUT => Ok(operation_to_instruction(operation)),
+        Operation::IN => Ok(operation_to_instruction(operation)),
+        Operation::PUTSP => Ok(operation_to_instruction(operation)),
+        _ => Err("long instruction in parse_single".to_string()),
     }
 }
 //helpers for single length instruction parsing
@@ -281,40 +284,44 @@ fn operation_to_instruction(operation: Operation) -> Instruction {
 }
 
 // parse double length intsructions
-fn parse_double(operation: Operation, instruction: u16, operand: u16) -> Instruction {
+fn parse_double(
+    operation: Operation,
+    instruction: u16,
+    operand: u16,
+) -> Result<Instruction, String> {
     match operation {
-        Operation::ADDi16 => parse_i16(operation, instruction, operand),
-        Operation::ADDa => parse_a(operation, instruction, operand),
-        Operation::ANDi16 => parse_i16(operation, instruction, operand),
-        Operation::ANDa => parse_a(operation, instruction, operand),
-        Operation::XORi16 => parse_i16(operation, instruction, operand),
-        Operation::XORa => parse_a(operation, instruction, operand),
-        Operation::BR => parse_br(instruction, operand),
-        Operation::JSR => Instruction {
+        Operation::ADDi16 => Ok(parse_i16(operation, instruction, operand)),
+        Operation::ADDa => Ok(parse_a(operation, instruction, operand)),
+        Operation::ANDi16 => Ok(parse_i16(operation, instruction, operand)),
+        Operation::ANDa => Ok(parse_a(operation, instruction, operand)),
+        Operation::XORi16 => Ok(parse_i16(operation, instruction, operand)),
+        Operation::XORa => Ok(parse_a(operation, instruction, operand)),
+        Operation::BR => Ok(parse_br(instruction, operand)),
+        Operation::JSR => Ok(Instruction {
             operation,
             dr: None,
             operand1: None,
             operand2: Some(get_addr(operand)),
-        },
-        Operation::LDa => Instruction {
+        }),
+        Operation::LDa => Ok(Instruction {
             operation,
             dr: Some(get_dr(instruction)),
             operand1: None,
             operand2: Some(get_addr(operand)),
-        },
-        Operation::ST => Instruction {
+        }),
+        Operation::ST => Ok(Instruction {
             operation,
             dr: Some(get_dr(instruction)),
             operand1: None,
             operand2: Some(get_addr(operand)),
-        },
-        Operation::STR16 => Instruction {
+        }),
+        Operation::STR16 => Ok(Instruction {
             operation,
             dr: Some(get_dr(instruction)),
             operand1: None,
             operand2: Some(get_imm16(operand)),
-        },
-        _ => panic!("short instruction in parse_double"),
+        }),
+        _ => Err("short instruction in parse_double".to_string()),
     }
 }
 // helpers for double length instruction parsing
