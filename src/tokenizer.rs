@@ -61,10 +61,10 @@ pub enum Operand {
     BR(Flags),
     Address(u16),
     Imm16(i16),
-    Imm7(ux::i7),
-    Imm3(ux::i3),
+    Imm7(i7),
+    Imm3(i3),
     TrapVect(u8),
-    Register(ux::u3),
+    Register(u3),
 }
 #[derive(Debug)]
 pub struct Instruction {
