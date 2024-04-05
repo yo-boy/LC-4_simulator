@@ -134,7 +134,7 @@ impl Machine {
     }
 
     // pretty print all info
-    fn pretty_print(&mut self) {
+    fn pretty_print(&self) {
         println!("PC: 0x{:04x}", self.pc);
         self.print_registers();
         println!("");
@@ -143,7 +143,7 @@ impl Machine {
     }
 
     // print memory around PC
-    fn print_pretty_memory(&mut self) {
+    fn print_pretty_memory(&self) {
         for i in (self.pc)..(self.pc + 2) {
             println!("0x{:04x}: {:016b}", i, self.memory[i]);
         }
@@ -157,7 +157,7 @@ impl Machine {
     }
 
     // print all the modified parts of memory in a pretty way
-    fn print_modified_memory(&mut self) {
+    fn print_modified_memory(&self) {
         todo!()
     }
 }
