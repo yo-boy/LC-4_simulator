@@ -1,13 +1,12 @@
 #![allow(dead_code)]
-#![allow(unused_imports)]
 mod prng;
 mod reader;
 mod tokenizer;
-use prng::{ASG, LFSR};
+use prng::ASG;
 use reader::read_input_files;
 use std::path::PathBuf;
-use tokenizer::{tokenize, Instruction};
-use ux::{i3, u3, u7};
+use tokenizer::tokenize;
+use ux::u3;
 
 use crate::tokenizer::{check_instruction_double, Operation};
 
@@ -180,8 +179,6 @@ fn main() {
     lc4.run_machine().unwrap();
 }
 
-mod executer {
-    use crate::{tokenizer::Instruction, Machine};
-}
+mod executer {}
 
 // note to self, this is important, you need to work on the read execute cycle now, and make sure to handle unexpected data the same way a processor should (exception I assume)
