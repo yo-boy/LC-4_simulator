@@ -20,9 +20,11 @@ struct PSR {
 }
 
 struct Machine {
+    halt_flag: bool,
     asg: ASG,
     memory: [u16; 65536],
-    pc: u16,
+    // needs to be usize to use as an index into arrays
+    pc: usize,
     register: [u16; 8],
     usp: u16,
     ssp: u16,
@@ -32,6 +34,7 @@ struct Machine {
 impl Machine {
     pub fn new(mem: Option<[u16; 65536]>) -> Machine {
         Machine {
+            halt_flag: true,
             asg: ASG::new(),
             memory: (match mem {
                 Some(mem) => mem,
@@ -55,15 +58,45 @@ impl Machine {
             print!("R{}: {}\t", i, reg)
         }
     }
+
+    // simulate a single instruction using the executor module
     fn simulate_instruction(&mut self) -> Result<(), &str> {
+        let double: bool = check_instruction_double(self.memory[self.pc]);
+        if double {
+            match tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1])) {
+                _ => todo!(),
+            }
+        } else {
+            match tokenize(self.memory[self.pc], None) {
+                _ => todo!(),
+            }
+        }
         Ok(())
     }
+
+    // runs the machine until it reaches a halt instruction or exception
+    fn run_machine(&mut self) -> Result<(), &str> {
+        while self.halt_flag & (self.pc < 0xFE00) {
+            if check_instruction_double(self.memory[self.pc]) {
+                println!(
+                    "exectuing: {:?}",
+                    tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1]))
+                );
+                self.simulate_instruction().unwrap();
+                self.pc += 2;
+            } else {
+                println!("{:?}", tokenize(self.memory[self.pc], None));
+                self.simulate_instruction().unwrap();
+                self.pc += 1;
+            }
+        }
+        Ok(())
+    }
+
     // print all the modified parts of memory in a pretty way
     fn print_modified_memory(&mut self) {
         todo!()
     }
-
-    fn add(&mut self, inst: Instruction) {}
 }
 
 fn main() {
@@ -97,7 +130,10 @@ fn main() {
     }
 }
 
-// note to self, this is important, you need to work on the read execute cycle now, and make sure to handle unexpected data the same way a processor should (exception I assume)
-fn tokenize_helper() {
-    todo!()
+mod executer {
+    use crate::{tokenizer::Instruction, Machine};
+
+    fn add(machine: &mut Machine, inst: Instruction) {}
 }
+
+// note to self, this is important, you need to work on the read execute cycle now, and make sure to handle unexpected data the same way a processor should (exception I assume)
