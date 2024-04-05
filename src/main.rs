@@ -53,25 +53,61 @@ impl Machine {
             },
         }
     }
-    pub fn print_registers(&self) {
-        for (i, reg) in self.register.iter().enumerate() {
-            print!("R{}: {}\t", i, reg)
-        }
-    }
 
     // simulate a single instruction using the executor module
-    fn simulate_instruction(&mut self) -> Result<(), &str> {
+    fn simulate_instruction(&mut self) -> Result<(), String> {
         let double: bool = check_instruction_double(self.memory[self.pc]);
         if double {
             match tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1])) {
-                _ => todo!(),
+                Ok(instruction) => match instruction.operation {
+                    Operation::ADDi16 => Ok(()),
+                    Operation::ADDa => Ok(()),
+                    Operation::ANDi16 => Ok(()),
+                    Operation::ANDa => Ok(()),
+                    Operation::XORi16 => Ok(()),
+                    Operation::XORa => Ok(()),
+                    Operation::BR => Ok(()),
+                    Operation::JSR => Ok(()),
+                    Operation::LDa => Ok(()),
+                    Operation::ST => Ok(()),
+                    Operation::STR16 => Ok(()),
+                    _ => {
+                        Err("single length instruction in simulate_instruction double".to_string())
+                    }
+                },
+                Err(error) => Err(error),
             }
         } else {
             match tokenize(self.memory[self.pc], None) {
-                _ => todo!(),
+                Ok(instruction) => match instruction.operation {
+                    Operation::ADD => Ok(()),
+                    Operation::ADDi => Ok(()),
+                    Operation::AND => Ok(()),
+                    Operation::ANDi => Ok(()),
+                    Operation::XOR => Ok(()),
+                    Operation::XORi => Ok(()),
+                    Operation::JUMP => Ok(()),
+                    Operation::RET => Ok(()),
+                    Operation::JSRR => Ok(()),
+                    Operation::LD => Ok(()),
+                    Operation::STR => Ok(()),
+                    Operation::NOT => Ok(()),
+                    Operation::TRAP => Ok(()),
+                    Operation::RTI => Ok(()),
+                    Operation::LSD => Ok(()),
+                    Operation::LPN => Ok(()),
+                    Operation::CLRP => Ok(()),
+                    Operation::HALT => Ok(self.halt_flag = false),
+                    Operation::PUTS => Ok(()),
+                    Operation::GETC => Ok(()),
+                    Operation::OUT => Ok(()),
+                    Operation::IN => Ok(()),
+                    Operation::PUTSP => Ok(()),
+                    _ => Err("double instruction in simulate_instruction double".to_string()),
+                },
+                Err(error) => Err(error),
             }
         }
-        Ok(())
     }
 
     // runs the machine until it reaches a halt instruction or exception
@@ -83,14 +119,38 @@ impl Machine {
                     tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1]))
                 );
                 self.simulate_instruction().unwrap();
+                self.pretty_print();
                 self.pc += 2;
             } else {
-                println!("{:?}", tokenize(self.memory[self.pc], None));
+                println!("executing: {:?}", tokenize(self.memory[self.pc], None));
                 self.simulate_instruction().unwrap();
+                self.pretty_print();
                 self.pc += 1;
             }
         }
         Ok(())
+    }
+
+    // pretty print all info
+    fn pretty_print(&mut self) {
+        println!("PC: {:04x}", self.pc);
+        self.print_registers();
+        self.print_pretty_memory();
+        println!("");
+    }
+
+    // print memory around PC
+    fn print_pretty_memory(&mut self) {
+        for i in (self.pc - 2)..(self.pc + 2) {
+            println!("0x{:04x}: {:016b}", i, self.memory[i]);
+        }
+    }
+
+    // print registers in a pretty way
+    pub fn print_registers(&self) {
+        for (i, reg) in self.register.iter().enumerate() {
+            print!("R{}: {}\t", i, reg)
+        }
     }
 
     // print all the modified parts of memory in a pretty way
@@ -110,24 +170,26 @@ fn main() {
         println!("0x{:04x}: {:016b}", i, out[i]);
     }
 
-    let lc4 = Machine::new(Some(out));
+    let mut lc4 = Machine::new(Some(out));
 
-    println!("{:?}", tokenize(out[0x3001], None));
+    // println!("{:?}", tokenize(out[0x3001], None));
 
-    let mut halt_flag: bool = true;
-    let mut i = 0x3000;
-    while (i < 0x3011) & (halt_flag) {
-        if check_instruction_double(out[i]) {
-            println!("{:?}", tokenize(out[i], Some(out[i + 1])));
-            i += 2;
-        } else {
-            println!("{:?}", tokenize(out[i], None));
-            if tokenize(out[i], None).operation == Operation::HALT {
-                halt_flag = false;
-            }
-            i += 1;
-        }
-    }
+    // let mut halt_flag: bool = true;
+    // let mut i = 0x3000;
+    // while (i < 0x3011) & (halt_flag) {
+    //     if check_instruction_double(out[i]) {
+    //         println!("{:?}", tokenize(out[i], Some(out[i + 1])));
+    //         i += 2;
+    //     } else {
+    //         println!("{:?}", tokenize(out[i], None));
+    //         if tokenize(out[i], None).unwrap().operation == Operation::HALT {
+    //             halt_flag = false;
+    //         }
+    //         i += 1;
+    //     }
+    // }
+
+    lc4.run_machine().unwrap();
 }
 
 mod executer {
