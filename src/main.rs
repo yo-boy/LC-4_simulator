@@ -5,10 +5,8 @@ mod tokenizer;
 use prng::ASG;
 use reader::read_input_files;
 use std::path::PathBuf;
-use tokenizer::tokenize;
+use tokenizer::{check_instruction_double, tokenize, Operation};
 use ux::u3;
-
-use crate::tokenizer::{check_instruction_double, Operation};
 
 struct PSR {
     priority: u3,
