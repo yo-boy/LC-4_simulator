@@ -5,7 +5,7 @@ mod tokenizer;
 use prng::ASG;
 use reader::read_input_files;
 use std::path::PathBuf;
-use tokenizer::{check_instruction_double, tokenize, Operation};
+use tokenizer::{check_instruction_double, tokenize, Instruction, Operand, Operation};
 use ux::u3;
 
 struct PSR {
@@ -22,7 +22,7 @@ struct Machine {
     memory: [u16; 65536],
     // needs to be usize to use as an index into arrays
     pc: usize,
-    register: [u16; 8],
+    register: [i16; 8],
     usp: u16,
     ssp: u16,
     psr: PSR,
@@ -33,12 +33,9 @@ impl Machine {
         Machine {
             halt_flag: true,
             asg: ASG::new(),
-            memory: (match mem {
-                Some(mem) => mem,
-                None => [0b0u16; 65536],
-            }),
+            memory: mem.unwrap_or([0b0u16; 65536]),
             pc: 0x3000,
-            register: [0b0u16; 8],
+            register: [0b0i16; 8],
             usp: 0xFDFF,
             ssp: 0x2FFF,
             psr: PSR {
@@ -77,12 +74,12 @@ impl Machine {
         } else {
             match tokenize(self.memory[self.pc], None) {
                 Ok(instruction) => match instruction.operation {
-                    Operation::ADD => Ok(()),
-                    Operation::ADDi => Ok(()),
-                    Operation::AND => Ok(()),
-                    Operation::ANDi => Ok(()),
-                    Operation::XOR => Ok(()),
-                    Operation::XORi => Ok(()),
+                    Operation::ADD => self.execute_def(instruction),
+                    Operation::ADDi => self.execute_def(instruction),
+                    Operation::AND => self.execute_def(instruction),
+                    Operation::ANDi => self.execute_def(instruction),
+                    Operation::XOR => self.execute_def(instruction),
+                    Operation::XORi => self.execute_def(instruction),
                     Operation::JUMP => Ok(()),
                     Operation::RET => Ok(()),
                     Operation::JSRR => Ok(()),
@@ -105,6 +102,37 @@ impl Machine {
                 Err(error) => Err(error),
             }
         }
+    }
+
+    fn execute_def(&mut self, instruction: Instruction) -> Result<(), String> {
+        // this is for intructions in the 'default' configuration (dr, sr1, sr2|imm3)
+        let dr: usize = instruction_to_dr(&instruction)?;
+        let sr1: usize = instruction_to_sr1(&instruction)?;
+        let sr2 = match &instruction.operand2 {
+            Some(op) => match op {
+                Operand::Imm3(_) => Ok(instruction_to_imm3(&instruction)?),
+                Operand::Register(_) => Ok(instruction_to_sr2(&instruction)? as i16),
+                _ => Err("unexpected second operand".to_owned()),
+            },
+            None => Err("no second operand".to_owned()),
+        }?;
+        // this may work, needs testing to make sure it does with negative numbers, probably doesn't work
+        // never mind, this should work fine now that registers are i16
+        return match instruction.operation {
+            Operation::ADD => {
+                Ok(self.register[dr] = self.register[sr1] + self.register[sr2 as usize])
+            }
+            Operation::ADDi => Ok(self.register[dr] = self.register[sr1] + sr2),
+            Operation::AND => {
+                Ok(self.register[dr] = self.register[sr1] & self.register[sr2 as usize])
+            }
+            Operation::ANDi => Ok(self.register[dr] = self.register[sr1] & sr2),
+            Operation::XOR => {
+                Ok(self.register[dr] = self.register[sr1] ^ self.register[sr2 as usize])
+            }
+            Operation::XORi => Ok(self.register[dr] = self.register[sr1] ^ sr2),
+            _ => Err("".to_owned()),
+        };
     }
 
     // runs the machine until it reaches a halt instruction or exception
@@ -135,9 +163,9 @@ impl Machine {
     fn pretty_print(&self) {
         println!("PC: 0x{:04x}", self.pc);
         self.print_registers();
-        println!("");
+        println!();
         self.print_pretty_memory();
-        println!("");
+        println!();
     }
 
     // print memory around PC
@@ -160,6 +188,44 @@ impl Machine {
     }
 }
 
+fn register_to_index(register: &Operand) -> Result<usize, String> {
+    match register {
+        Operand::Register(reg) => Ok(u32::from(reg.clone()) as usize),
+        _ => Err("dr is not a register".to_owned()),
+    }
+}
+
+fn instruction_to_dr(instruction: &Instruction) -> Result<usize, String> {
+    match &instruction.dr {
+        Some(operand) => register_to_index(&operand),
+        None => Err("no destination register specified".to_owned()),
+    }
+}
+
+fn instruction_to_sr1(instruction: &Instruction) -> Result<usize, String> {
+    match &instruction.operand1 {
+        Some(operand) => register_to_index(&operand),
+        None => Err("no destination register specified".to_owned()),
+    }
+}
+
+fn instruction_to_sr2(instruction: &Instruction) -> Result<usize, String> {
+    match &instruction.operand2 {
+        Some(operand) => register_to_index(&operand),
+        None => Err("no destination register specified".to_owned()),
+    }
+}
+
+fn instruction_to_imm3(instruction: &Instruction) -> Result<i16, String> {
+    match &instruction.operand2 {
+        Some(number) => match number {
+            Operand::Imm3(number) => Ok(i16::from(number.clone())),
+            _ => Err("incorrect operand 2, not imm3".to_owned()),
+        },
+        None => Err("no imm3".to_owned()),
+    }
+}
+
 fn main() {
     let file = PathBuf::from("./examples/out.bin");
 
@@ -170,11 +236,12 @@ fn main() {
     for i in 0x3000..0x3011 {
         println!("0x{:04x}: {:016b}", i, out[i]);
     }
-    println!("");
+    println!();
 
     let mut lc4 = Machine::new(Some(out));
 
     lc4.run_machine().unwrap();
+    println!("{:016b}", -12i16);
 }
 
 mod executer {}

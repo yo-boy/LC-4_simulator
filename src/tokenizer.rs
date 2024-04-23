@@ -56,7 +56,7 @@ impl Operation {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Operand {
     BR(Flags),
     Address(u16),
@@ -73,7 +73,7 @@ pub struct Instruction {
     pub operand1: Option<Operand>,
     pub operand2: Option<Operand>,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Flags {
     n: bool,
     z: bool,
@@ -167,12 +167,10 @@ fn parse_add(instruction: u16) -> Operation {
         } else {
             Operation::ADD
         }
+    } else if instruction >> 3 & 0b1 == 1 {
+        Operation::ADDi16
     } else {
-        if instruction >> 3 & 0b1 == 1 {
-            Operation::ADDi16
-        } else {
-            Operation::ADDa
-        }
+        Operation::ADDa
     }
 }
 fn parse_and(instruction: u16) -> Operation {
@@ -182,12 +180,10 @@ fn parse_and(instruction: u16) -> Operation {
         } else {
             Operation::AND
         }
+    } else if instruction >> 3 & 0b1 == 1 {
+        Operation::ANDi16
     } else {
-        if instruction >> 3 & 0b1 == 1 {
-            Operation::ANDi16
-        } else {
-            Operation::ANDa
-        }
+        Operation::ANDa
     }
 }
 fn parse_xor(instruction: u16) -> Operation {
@@ -197,12 +193,10 @@ fn parse_xor(instruction: u16) -> Operation {
         } else {
             Operation::XOR
         }
+    } else if instruction >> 3 & 0b1 == 1 {
+        Operation::XORi16
     } else {
-        if instruction >> 3 & 0b1 == 1 {
-            Operation::XORi16
-        } else {
-            Operation::XORa
-        }
+        Operation::XORa
     }
 }
 

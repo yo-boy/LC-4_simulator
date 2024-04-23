@@ -35,7 +35,7 @@ fn read_all_u16_values_from_file(path: &PathBuf) -> std::io::Result<Vec<u16>> {
 
 // panic if PC writes into priveleged memory
 fn check_pc(pc: u16) {
-    if (pc < 0x3000) | (pc > 0xFDFF) {
+    if !(0x3000..=0xFDFF).contains(&pc) {
         panic!("bad binary images, PC: {}", pc)
     }
 }

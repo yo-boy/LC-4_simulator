@@ -21,7 +21,7 @@ impl LFSR {
         let bit: u16 =
             (self.state ^ (self.state >> 1) ^ (self.state >> 3) ^ (self.state >> 12)) & 0b1;
         self.state = (self.state >> 1) | (bit << 15);
-        return out;
+        out
     }
 }
 
@@ -51,9 +51,9 @@ impl ASG {
     // clock the ASG returning the output bit at position 0 in a u16
     pub fn clock(&mut self) -> u16 {
         if self.clock.clock() == 1 {
-            return self.first.clock();
+            self.first.clock()
         } else {
-            return self.second.clock();
+            self.second.clock()
         }
     }
 }
