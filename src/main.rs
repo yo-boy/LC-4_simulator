@@ -22,7 +22,6 @@ fn main() {
     let mut lc4 = Machine::new(Some(out));
 
     lc4.run_machine().unwrap();
-    println!("{:016b}", -12i16);
 }
 
 mod executer {}

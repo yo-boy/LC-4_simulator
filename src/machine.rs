@@ -142,13 +142,15 @@ impl Machine {
         Ok(self.pc = addr)
     }
 
+    // TODO fix br since it's somehow broken, not sure how
+    // found out how, the pc advances by 2 after BR :skull:
     fn br(&mut self, instruction: &Instruction) -> Result<(), String> {
         let addr = instruction_to_addr(instruction)?;
         match &instruction.operand1 {
             Some(br) => match br {
                 Operand::BR(flag) => Ok({
                     if (flag.n & self.psr.n) | (flag.z & self.psr.z) | (flag.p & self.psr.p) {
-                        self.pc = addr as usize;
+                        self.pc = addr as usize - 2;
                     }
                 }),
                 _ => Err("br came with something other than flags".to_owned()),
@@ -179,7 +181,7 @@ impl Machine {
         if !self.psr.supervisor {
             return Err("privilege mode exception".to_owned());
         }
-        self.pc = self.memory[self.register[6] as usize] as usize;
+        self.pc = self.memory[self.register[6] as usize] as usize - 1;
         self.ssp; // TODO
                   // somewhat uneeded because trap instructions and interrupts don't exist
         Ok(())
@@ -215,19 +217,19 @@ impl Machine {
 
     fn jump(&mut self, instruction: Instruction) -> Result<(), String> {
         let reg = instruction_to_dr(&instruction)?;
-        self.pc = self.register[reg] as usize;
+        self.pc = self.register[reg] as usize - 1;
         Ok(())
     }
 
     fn ret(&mut self) -> Result<(), String> {
-        self.pc = self.register[7] as usize;
+        self.pc = self.register[7] as usize - 1;
         Ok(())
     }
 
     fn jsrr(&mut self, instruction: Instruction) -> Result<(), String> {
         self.register[7] = self.pc as i16;
         let reg = instruction_to_dr(&instruction)?;
-        self.pc = self.register[reg] as usize;
+        self.pc = self.register[reg] as usize - 1;
         Ok(())
     }
 
@@ -330,22 +332,26 @@ impl Machine {
     // runs the machine until it reaches a halt instruction or exception
     pub fn run_machine(&mut self) -> Result<(), &str> {
         while self.halt_flag & (self.pc < 0xFE00) {
-            if check_instruction_double(self.memory[self.pc]) {
-                println!(
-                    "exectuing: {:?}",
-                    tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1])).unwrap()
-                );
-                self.simulate_instruction().unwrap();
-                self.pretty_print();
-                self.pc += 2;
+            if self.memory[self.pc] == 0 {
+                self.halt_flag = false;
             } else {
-                println!(
-                    "executing: {:?}",
-                    tokenize(self.memory[self.pc], None).unwrap()
-                );
-                self.simulate_instruction().unwrap();
-                self.pretty_print();
-                self.pc += 1;
+                if check_instruction_double(self.memory[self.pc]) {
+                    println!(
+                        "exectuing: {:?}",
+                        tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1])).unwrap()
+                    );
+                    self.simulate_instruction().unwrap();
+                    self.pretty_print();
+                    self.pc += 2;
+                } else {
+                    println!(
+                        "executing: {:?}",
+                        tokenize(self.memory[self.pc], None).unwrap()
+                    );
+                    self.simulate_instruction().unwrap();
+                    self.pretty_print();
+                    self.pc += 1;
+                }
             }
         }
         Ok(())
@@ -353,7 +359,8 @@ impl Machine {
 
     // pretty print all info
     fn pretty_print(&self) {
-        println!("PC: 0x{:04x}", self.pc);
+        println!("PC: {}", self.pc);
+        //println!("PC: 0x{:04x}", self.pc);
         self.print_registers();
         println!();
         self.print_pretty_memory();
