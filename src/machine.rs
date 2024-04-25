@@ -71,11 +71,11 @@ impl Machine {
                     Operation::ANDa => self.execute_double_def(instruction),
                     Operation::XORi16 => self.execute_double_def(instruction),
                     Operation::XORa => self.execute_double_def(instruction),
-                    Operation::BR => Ok(()),
-                    Operation::JSR => Ok(()),
-                    Operation::LDa => Ok(()),
-                    Operation::ST => Ok(()),
-                    Operation::STR16 => Ok(()),
+                    Operation::BR => self.br(&instruction),
+                    Operation::JSR => self.jsr(&instruction),
+                    Operation::LDa => self.lda(instruction),
+                    Operation::ST => self.st(instruction),
+                    Operation::STR16 => self.str16(instruction),
                     _ => {
                         Err("single length instruction in simulate_instruction double".to_string())
                     }
@@ -112,6 +112,48 @@ impl Machine {
                 },
                 Err(error) => Err(error),
             }
+        }
+    }
+
+    fn str16(&mut self, instruction: Instruction) -> Result<(), String> {
+        let addr = self.register[instruction_to_dr(&instruction)?] as usize;
+        let value = instruction_to_imm16(&instruction)?;
+        Ok(self.memory[addr] = value as u16)
+    }
+
+    fn st(&mut self, instruction: Instruction) -> Result<(), String> {
+        let sr = instruction_to_dr(&instruction)?;
+        let addr = instruction_to_addr(&instruction)? as usize;
+        self.acv_exception(addr)?;
+        Ok(self.memory[addr] = self.register[sr] as u16)
+    }
+
+    fn lda(&mut self, instruction: Instruction) -> Result<(), String> {
+        let dr = instruction_to_dr(&instruction)?;
+        let addr = instruction_to_addr(&instruction)? as usize;
+        let value = self.memory[addr] as i16;
+        self.setcc(value);
+        Ok(self.register[dr] = value)
+    }
+
+    fn jsr(&mut self, instruction: &Instruction) -> Result<(), String> {
+        let addr = instruction_to_addr(instruction)? as usize;
+        self.register[7] = self.pc as i16;
+        Ok(self.pc = addr)
+    }
+
+    fn br(&mut self, instruction: &Instruction) -> Result<(), String> {
+        let addr = instruction_to_addr(instruction)?;
+        match &instruction.operand1 {
+            Some(br) => match br {
+                Operand::BR(flag) => Ok({
+                    if (flag.n & self.psr.n) | (flag.z & self.psr.z) | (flag.p & self.psr.p) {
+                        self.pc = addr as usize;
+                    }
+                }),
+                _ => Err("br came with something other than flags".to_owned()),
+            },
+            None => Err("BR does not have flag".to_owned()),
         }
     }
 
@@ -152,8 +194,15 @@ impl Machine {
 
     fn str(&mut self, instruction: Instruction) -> Result<(), String> {
         let dest_addr = instruction_to_dr(&instruction)?;
+        self.acv_exception(dest_addr)?;
         let value = instruction_to_imm7(&instruction)?;
-        self.memory[dest_addr] = value as u16;
+        Ok(self.memory[dest_addr] = value as u16)
+    }
+
+    fn acv_exception(&mut self, addr: usize) -> Result<(), String> {
+        if address_privileged(addr) & !self.psr.supervisor {
+            return Err("ACV exception, privileged memory in non supervisor".to_owned());
+        }
         Ok(())
     }
 
@@ -397,4 +446,8 @@ fn instruction_to_imm16(instruction: &Instruction) -> Result<i16, String> {
         },
         None => Err("no imm16".to_owned()),
     }
+}
+
+fn address_privileged(addr: usize) -> bool {
+    !(0x3000..=0xFDFF).contains(&addr)
 }

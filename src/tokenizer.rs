@@ -75,9 +75,9 @@ pub struct Instruction {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Flags {
-    n: bool,
-    z: bool,
-    p: bool,
+    pub n: bool,
+    pub z: bool,
+    pub p: bool,
 }
 
 pub fn tokenize(
