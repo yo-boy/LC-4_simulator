@@ -42,6 +42,23 @@ impl Machine {
         }
     }
 
+    // set the result registers
+    fn setcc(&mut self, value: i16) {
+        if value > 0 {
+            self.psr.p = true;
+            self.psr.n = false;
+            self.psr.z = false;
+        } else if value == 0 {
+            self.psr.p = false;
+            self.psr.n = false;
+            self.psr.z = true;
+        } else {
+            self.psr.p = false;
+            self.psr.n = true;
+            self.psr.z = false;
+        }
+    }
+
     // simulate a single instruction using the executor module
     fn simulate_instruction(&mut self) -> Result<(), String> {
         let double: bool = check_instruction_double(self.memory[self.pc]);
@@ -74,13 +91,13 @@ impl Machine {
                     Operation::ANDi => self.execute_def(instruction),
                     Operation::XOR => self.execute_def(instruction),
                     Operation::XORi => self.execute_def(instruction),
-                    Operation::JUMP => Ok(()),
-                    Operation::RET => Ok(()),
-                    Operation::JSRR => Ok(()),
-                    Operation::LD => Ok(()),
-                    Operation::STR => Ok(()),
-                    Operation::NOT => Ok(()),
-                    Operation::TRAP => Ok(()),
+                    Operation::JUMP => self.jump(instruction),
+                    Operation::RET => self.ret(),
+                    Operation::JSRR => self.jsrr(instruction),
+                    Operation::LD => self.ld(instruction),
+                    Operation::STR => self.str(instruction),
+                    Operation::NOT => self.not(instruction),
+                    Operation::TRAP => Ok(()), //this will not happen
                     Operation::RTI => Ok(()),
                     Operation::LSD => Ok(()),
                     Operation::LPN => Ok(()),
@@ -96,6 +113,53 @@ impl Machine {
                 Err(error) => Err(error),
             }
         }
+    }
+
+    fn rti(&mut self) -> Result<(), String> {
+        if !self.psr.supervisor {
+            return Err("privilege mode exception".to_owned());
+        }
+        self.ssp; // TODO
+        Ok(())
+    }
+
+    fn not(&mut self, instruction: Instruction) -> Result<(), String> {
+        let dr = instruction_to_dr(&instruction)?;
+        let sr = instruction_to_sr1(&instruction)?;
+        let value = !self.register[sr];
+        Ok(self.register[dr] = value)
+    }
+
+    fn str(&mut self, instruction: Instruction) -> Result<(), String> {
+        let dest_addr = instruction_to_dr(&instruction)?;
+        let value = instruction_to_imm7(&instruction)?;
+        self.memory[dest_addr] = value as u16;
+        Ok(())
+    }
+
+    fn ld(&mut self, instruction: Instruction) -> Result<(), String> {
+        let dr = instruction_to_dr(&instruction)?;
+        let num = instruction_to_imm7(&instruction)?;
+        self.setcc(num);
+        Ok(self.register[dr] = num)
+    }
+
+    fn jump(&mut self, instruction: Instruction) -> Result<(), String> {
+        let reg = instruction_to_dr(&instruction)?;
+        self.pc = self.register[reg] as usize;
+        Ok(())
+    }
+
+    fn ret(&mut self) -> Result<(), String> {
+        self.pc = self.register[7] as usize;
+        Ok(())
+    }
+
+    fn jsrr(&mut self, instruction: Instruction) -> Result<(), String> {
+        self.register[7] = self.pc as i16;
+        let reg = instruction_to_dr(&instruction)?;
+        self.pc = self.register[reg] as usize;
+        Ok(())
     }
 
     fn execute_def(&mut self, instruction: Instruction) -> Result<(), String> {
@@ -114,17 +178,35 @@ impl Machine {
         // never mind, this should work fine now that registers are i16
         return match instruction.operation {
             Operation::ADD => {
-                Ok(self.register[dr] = self.register[sr1] + self.register[sr2 as usize])
+                let value = self.register[sr1] + self.register[sr2 as usize];
+                self.setcc(value);
+                Ok(self.register[dr] = value)
             }
-            Operation::ADDi => Ok(self.register[dr] = self.register[sr1] + sr2),
+            Operation::ADDi => {
+                let value = self.register[sr1] + sr2;
+                self.setcc(value);
+                Ok(self.register[dr] = value)
+            }
             Operation::AND => {
-                Ok(self.register[dr] = self.register[sr1] & self.register[sr2 as usize])
+                let value = self.register[sr1] & self.register[sr2 as usize];
+                self.setcc(value);
+                Ok(self.register[dr] = value)
             }
-            Operation::ANDi => Ok(self.register[dr] = self.register[sr1] & sr2),
+            Operation::ANDi => {
+                let value = self.register[sr1] & sr2;
+                self.setcc(value);
+                Ok(self.register[dr] = value)
+            }
             Operation::XOR => {
-                Ok(self.register[dr] = self.register[sr1] ^ self.register[sr2 as usize])
+                let value = self.register[sr1] ^ self.register[sr2 as usize];
+                self.setcc(value);
+                Ok(self.register[dr] = value)
             }
-            Operation::XORi => Ok(self.register[dr] = self.register[sr1] ^ sr2),
+            Operation::XORi => {
+                let value = self.register[sr1] ^ sr2;
+                self.setcc(value);
+                Ok(self.register[dr] = value)
+            }
             _ => Err("".to_owned()),
         };
     }
@@ -217,5 +299,15 @@ fn instruction_to_imm3(instruction: &Instruction) -> Result<i16, String> {
             _ => Err("incorrect operand 2, not imm3".to_owned()),
         },
         None => Err("no imm3".to_owned()),
+    }
+}
+
+fn instruction_to_imm7(instruction: &Instruction) -> Result<i16, String> {
+    match &instruction.operand1 {
+        Some(number) => match number {
+            Operand::Imm7(number) => Ok(i16::from(number.clone())),
+            _ => Err("incorrect operand 1, not imm7".to_owned()),
+        },
+        None => Err("no imm7".to_owned()),
     }
 }
