@@ -56,4 +56,13 @@ impl ASG {
             self.second.clock()
         }
     }
+    // clock the ASG 16 times and return the 16 output bits in a u16
+    pub fn clock_16(&mut self) -> u16 {
+        let mut out = 0u16;
+        for _ in 0..15 {
+            out |= self.clock();
+            out <<= 1;
+        }
+        out
+    }
 }
