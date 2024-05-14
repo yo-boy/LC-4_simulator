@@ -1,12 +1,15 @@
 #![allow(dead_code)]
+mod log;
 mod machine;
 mod prng;
 mod reader;
 mod term;
 mod tokenizer;
+use crate::log::log;
 use clap::command;
 use machine::Machine;
 use reader::read_input_files;
+use std::fs::File;
 use std::path::PathBuf;
 
 fn main() -> Result<(), String> {
@@ -27,10 +30,12 @@ fn main() -> Result<(), String> {
             .to_owned(),
     );
 
+    File::create("lc4-debug.log").unwrap();
+
     let out = read_input_files(&files);
 
     for i in 0x3000..0x3011 {
-        println!("0x{:04x}: {:016b}", i, out[i]);
+        log(&format!("0x{:04x}: {:016b}\n", i, out[i]));
     }
 
     let mut lc4 = Machine::new(Some(out));

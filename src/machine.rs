@@ -1,3 +1,4 @@
+use crate::log::log;
 use crate::prng::ASG;
 use crate::tokenizer::{check_instruction_double, tokenize, Instruction, Operand, Operation};
 use ux::u3;
@@ -335,47 +336,55 @@ impl Machine {
             if self.memory[self.pc] == 0 {
                 self.halt_flag = false;
             } else {
+                let mut out = String::new();
                 if check_instruction_double(self.memory[self.pc]) {
-                    println!(
-                        "exectuing: {:?}",
+                    out += &format!(
+                        "exectuing: {:?}\n",
                         tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1]))?
                     );
                     self.simulate_instruction()?;
-                    self.pretty_print();
+                    out += &self.pretty_print();
                     self.pc += 2;
                 } else {
-                    println!("executing: {:?}", tokenize(self.memory[self.pc], None)?);
+                    out += &format!("executing: {:?}\n", tokenize(self.memory[self.pc], None)?);
                     self.simulate_instruction()?;
-                    self.pretty_print();
+                    out += &self.pretty_print();
                     self.pc += 1;
                 }
+                log(&out);
             }
         }
         Ok(())
     }
 
     // pretty print all info
-    fn pretty_print(&self) {
-        println!("PC: {}", self.pc);
+    fn pretty_print(&self) -> String {
+        let mut out = String::new();
+        out += &format!("PC: {}", self.pc);
         //println!("PC: 0x{:04x}", self.pc);
-        self.print_registers();
-        println!();
-        self.print_pretty_memory();
-        println!();
+        out += &self.print_registers();
+        out += "\n";
+        out += &self.print_pretty_memory();
+        out += "\n";
+        out
     }
 
     // print memory around PC
-    fn print_pretty_memory(&self) {
+    fn print_pretty_memory(&self) -> String {
+        let mut out: String = String::new();
         for i in (self.pc)..(self.pc + 2) {
-            println!("0x{:04x}: {:016b}", i, self.memory[i]);
+            out += &format!("0x{:04x}: {:016b}\n", i, self.memory[i]);
         }
+        out
     }
 
     // print registers in a pretty way
-    pub fn print_registers(&self) {
+    pub fn print_registers(&self) -> String {
+        let mut out: String = String::new();
         for (i, reg) in self.register.iter().enumerate() {
-            print!("R{}: {}\t", i, reg)
+            out += &format!("R{}: {}\t", i, reg);
         }
+        out
     }
 
     // print all the modified parts of memory in a pretty way
