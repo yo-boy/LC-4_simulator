@@ -40,7 +40,7 @@ fn check_pc(pc: u16) {
     }
 }
 
-pub fn read_input_files(paths: Vec<PathBuf>) -> [u16; 65536] {
+pub fn read_input_files(paths: &Vec<PathBuf>) -> [u16; 65536] {
     let mut out = [0u16; 65536];
     for path in paths {
         let values: Vec<u16> = read_all_u16_values_from_file(&path).expect("error reading file");

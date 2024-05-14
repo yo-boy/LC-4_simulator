@@ -38,6 +38,16 @@ pub enum Operation {
     PUTSP,
 }
 
+// impl std::fmt::Debug for Operand {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Operand::BR(flags) => write!(f, "{:?}", flags),
+//             Operand::Address(num) => write!(f, "0x{:04x}", num),
+//             _ => write!(f, "{:?}", self),
+//         }
+//     }
+// }
+
 impl Operation {
     fn is_double(&self) -> bool {
         match self {

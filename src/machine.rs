@@ -330,7 +330,7 @@ impl Machine {
     }
 
     // runs the machine until it reaches a halt instruction or exception
-    pub fn run_machine(&mut self) -> Result<(), &str> {
+    pub fn run_machine(&mut self) -> Result<(), String> {
         while self.halt_flag & (self.pc < 0xFE00) {
             if self.memory[self.pc] == 0 {
                 self.halt_flag = false;
@@ -338,17 +338,14 @@ impl Machine {
                 if check_instruction_double(self.memory[self.pc]) {
                     println!(
                         "exectuing: {:?}",
-                        tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1])).unwrap()
+                        tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1]))?
                     );
-                    self.simulate_instruction().unwrap();
+                    self.simulate_instruction()?;
                     self.pretty_print();
                     self.pc += 2;
                 } else {
-                    println!(
-                        "executing: {:?}",
-                        tokenize(self.memory[self.pc], None).unwrap()
-                    );
-                    self.simulate_instruction().unwrap();
+                    println!("executing: {:?}", tokenize(self.memory[self.pc], None)?);
+                    self.simulate_instruction()?;
                     self.pretty_print();
                     self.pc += 1;
                 }
