@@ -137,24 +137,44 @@ impl<'a, W: Write> Machine<'a, W> {
         }
     }
 
-    // TODO implement these
+    // TODO finish implementing these
     fn puts(&mut self) -> Result<(), String> {
+        let mut addr = self.register[0] as usize;
+        let mut out = self.memory[addr];
+        while out != 0x0000 {
+            match write!(self.term.output, "{}", out as u8 as char) {
+                Ok(()) => Ok(()),
+                Err(_) => Err("couldn't write to terminal".to_owned()),
+            }?;
+            addr += 1;
+            out = self.memory[addr];
+        }
+        Ok(())
+    }
+    fn in_trap(&mut self) -> Result<(), String> {
         Ok(())
     }
     fn getc(&mut self) -> Result<(), String> {
         Ok(())
     }
     fn out(&mut self) -> Result<(), String> {
-        let key = self.register[0] as u8 as char;
-        match write!(self.term.output, "{}", key) {
+        let out = self.register[0] as u8 as char;
+        match write!(self.term.output, "{}", out) {
             Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }
     }
-    fn in_trap(&mut self) -> Result<(), String> {
-        Ok(())
-    }
     fn putsp(&mut self) -> Result<(), String> {
+        let mut addr = self.register[0] as usize;
+        let mut out = self.memory[addr].to_be_bytes();
+        while out[1] != 0x00 {
+            match write!(self.term.output, "{}{}", out[0] as char, out[1] as char) {
+                Ok(()) => Ok(()),
+                Err(_) => Err("couldn't write to terminal".to_owned()),
+            }?;
+            addr += 1;
+            out = self.memory[addr].to_be_bytes();
+        }
         Ok(())
     }
 
