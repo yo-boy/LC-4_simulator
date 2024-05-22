@@ -1,7 +1,15 @@
 use crate::log::log;
 use crate::prng::ASG;
 use crate::tokenizer::{check_instruction_double, tokenize, Instruction, Operand, Operation};
+use std::io::StdinLock;
+use std::io::Write;
+
 use ux::u3;
+
+struct TerminalHandles<'a, W: Write> {
+    pub input: std::io::Bytes<StdinLock<'a>>,
+    pub output: W,
+}
 
 struct PSR {
     priority: u3,
@@ -11,7 +19,14 @@ struct PSR {
     z: bool,
 }
 
-pub struct Machine {
+struct Position {
+    x: u16,
+    y: u16,
+}
+
+pub struct Machine<'a, W: Write> {
+    cursor: Position,
+    term: TerminalHandles<'a, W>,
     halt_flag: bool,
     asg: ASG,
     memory: [u16; 65536],
@@ -23,9 +38,15 @@ pub struct Machine {
     psr: PSR,
 }
 
-impl Machine {
-    pub fn new(mem: Option<[u16; 65536]>) -> Machine {
+impl<'a, W: Write> Machine<'a, W> {
+    pub fn new(
+        mem: Option<[u16; 65536]>,
+        input: std::io::Bytes<StdinLock<'a>>,
+        output: W,
+    ) -> Machine<W> {
         Machine {
+            cursor: Position { x: 1, y: 1 },
+            term: TerminalHandles { input, output },
             halt_flag: true,
             asg: ASG::new(),
             memory: mem.unwrap_or([0b0u16; 65536]),
@@ -104,16 +125,37 @@ impl Machine {
                     Operation::LPN => self.lpn(),
                     Operation::CLRP => self.clrp(),
                     Operation::HALT => Ok(self.halt_flag = false),
-                    Operation::PUTS => Ok(()), // TODO
-                    Operation::GETC => Ok(()),
-                    Operation::OUT => Ok(()),
-                    Operation::IN => Ok(()),
-                    Operation::PUTSP => Ok(()),
+                    Operation::PUTS => self.puts(),
+                    Operation::GETC => self.getc(),
+                    Operation::OUT => self.out(),
+                    Operation::IN => self.in_trap(),
+                    Operation::PUTSP => self.putsp(),
                     _ => Err("double instruction in simulate_instruction double".to_string()),
                 },
                 Err(error) => Err(error),
             }
         }
+    }
+
+    // TODO implement these
+    fn puts(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+    fn getc(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+    fn out(&mut self) -> Result<(), String> {
+        let key = self.register[0] as u8 as char;
+        match write!(self.term.output, "{}", key) {
+            Ok(()) => Ok(()),
+            Err(_) => Err("couldn't write to terminal".to_owned()),
+        }
+    }
+    fn in_trap(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+    fn putsp(&mut self) -> Result<(), String> {
+        Ok(())
     }
 
     fn str16(&mut self, instruction: Instruction) -> Result<(), String> {
@@ -353,9 +395,14 @@ impl Machine {
                 }
                 log(&out);
             }
+            //self.clean_up()
         }
         Ok(())
     }
+
+    // fn cleanup(&mut self) {
+    //     //self.term.output.into_main_screen();
+    // }
 
     // pretty print all info
     fn pretty_print(&self) -> String {
