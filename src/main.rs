@@ -44,9 +44,8 @@ fn main() -> Result<(), String> {
     let mut screen = stdout()
         .into_raw_mode()
         .unwrap()
-        //.into_alternate_screen()
-        //.unwrap()
-	;
+        .into_alternate_screen()
+        .unwrap();
 
     // Create a handle for standard input
     let input = stdin().lock();
@@ -58,7 +57,7 @@ fn main() -> Result<(), String> {
 
     write!(
         screen,
-        "{}{}{}LC-4 simulation, 'esc' will exit.{}{}",
+        "{}{}{}LC-4 simulation.{}{}",
         termion::clear::All,
         termion::cursor::Goto(1, 1),
         termion::style::Bold,

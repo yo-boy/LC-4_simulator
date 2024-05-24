@@ -26,6 +26,8 @@ struct Position {
 
 pub struct Machine<'a, W: Write> {
     cursor: Position,
+    // implementing a buffer would be more consistent with the hardware
+    //input_buffer: Vec<u8>,
     term: TerminalHandles<'a, W>,
     halt_flag: bool,
     asg: ASG,
@@ -46,6 +48,7 @@ impl<'a, W: Write> Machine<'a, W> {
     ) -> Machine<W> {
         Machine {
             cursor: Position { x: 1, y: 1 },
+            //input_buffer: Vec::new(),
             term: TerminalHandles { input, output },
             halt_flag: true,
             asg: ASG::new(),
@@ -137,7 +140,6 @@ impl<'a, W: Write> Machine<'a, W> {
         }
     }
 
-    // TODO finish implementing these
     fn puts(&mut self) -> Result<(), String> {
         let mut addr = self.register[0] as usize;
         let mut out = self.memory[addr];
@@ -152,10 +154,32 @@ impl<'a, W: Write> Machine<'a, W> {
         Ok(())
     }
     fn in_trap(&mut self) -> Result<(), String> {
-        Ok(())
+        match write!(self.term.output, "input: ") {
+            Ok(_) => Ok(()),
+            Err(_) => Err("couldn't write to terminal".to_owned()),
+        }?;
+        let key = match self.term.input.next() {
+            Some(key) => match key {
+                Ok(key) => Ok(key),
+                Err(_) => Err("couldn't read input".to_owned()),
+            }?,
+            None => '\0' as u8,
+        };
+        match write!(self.term.output, "{}", key) {
+            Ok(_) => Ok(()),
+            Err(_) => Err("couldn't write to terminal".to_owned()),
+        }?;
+        Ok(self.register[0] = key as i16)
     }
     fn getc(&mut self) -> Result<(), String> {
-        Ok(())
+        let key = match self.term.input.next() {
+            Some(key) => match key {
+                Ok(key) => Ok(key),
+                Err(_) => Err("couldn't read input".to_owned()),
+            }?,
+            None => '\0' as u8,
+        };
+        Ok(self.register[0] = key as i16)
     }
     fn out(&mut self) -> Result<(), String> {
         let out = self.register[0] as u8 as char;
@@ -205,7 +229,6 @@ impl<'a, W: Write> Machine<'a, W> {
         Ok(self.pc = addr)
     }
 
-    // TODO fix br since it's somehow broken, not sure how
     // found out how, the pc advances by 2 after BR :skull:
     fn br(&mut self, instruction: &Instruction) -> Result<(), String> {
         let addr = instruction_to_addr(instruction)?;
@@ -394,7 +417,11 @@ impl<'a, W: Write> Machine<'a, W> {
 
     // runs the machine until it reaches a halt instruction or exception
     pub fn run_machine(&mut self) -> Result<(), String> {
-        while self.halt_flag & (self.pc < 0xFE00) {
+        //let mut key;
+        while self.halt_flag & (self.pc < 0xFE00)
+        // for if multi-threaded input handling is implemented
+        // & (self.input_buffer.last() != Some(&('\x1B' as u8)))
+        {
             if self.memory[self.pc] == 0 {
                 self.halt_flag = false;
             } else {
@@ -415,7 +442,14 @@ impl<'a, W: Write> Machine<'a, W> {
                 }
                 log(&out);
             }
-            //self.clean_up()
+            // this can work, but it needs to be in a seperate thread, later, for now let's not give an exit.
+            // key = match self.term.input.next() {
+            //     Some(key) => key.unwrap(),
+            //     None => '\0' as u8,
+            // };
+            // if key != '\0' as u8 {
+            //     self.input_buffer.push(key)
+            // }
         }
         Ok(())
     }
