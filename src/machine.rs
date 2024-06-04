@@ -489,9 +489,9 @@ impl<'a, W: Write> Machine<'a, W> {
     }
 
     // print all the modified parts of memory in a pretty way
-    fn print_modified_memory(&self) {
-        todo!()
-    }
+    //fn print_modified_memory(&self) {
+    //    todo!()
+    //}
 }
 
 fn register_to_index(register: &Operand) -> Result<usize, String> {

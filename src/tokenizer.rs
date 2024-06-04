@@ -73,7 +73,7 @@ pub enum Operand {
     Imm16(i16),
     Imm7(i7),
     Imm3(i3),
-    TrapVect(u8),
+    //TrapVect(u8),
     Register(u3),
 }
 #[derive(Debug)]
