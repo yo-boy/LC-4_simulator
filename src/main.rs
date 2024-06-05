@@ -39,9 +39,10 @@ fn main() -> Result<(), String> {
 
     let out = read_input_files(&files);
 
-    for i in 0x3000..0x3011 {
-        log(&format!("0x{:04x}: {:016b}\n", i, out[i]));
+    for (i, val) in out.iter().enumerate().filter(|(_i, x)| **x != 0) {
+        log(&format!("{}: {:016b}\n", i, val));
     }
+    log(&"\n");
 
     // Switch to raw mode and use an alternate screen
     let mut screen = stdout()

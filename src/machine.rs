@@ -162,19 +162,20 @@ impl<'a, W: Write> Machine<'a, W> {
         Ok(())
     }
     fn in_trap(&mut self) -> Result<(), String> {
+        // get cursor position
         let (_x, y) = self.term.output.cursor_pos().unwrap();
-        match write!(
-            self.term.output,
-            "{}input: ",
-            termion::cursor::Goto(1, y + 1)
-        ) {
+        let y = y + 1;
+        // go to next line and print input prompt for user
+        match write!(self.term.output, "{}input: ", termion::cursor::Goto(1, y)) {
             Ok(_) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
+        // flush to terminal
         match self.term.output.flush() {
             Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
+        // block and read input
         let key = match self.term.input.next() {
             Some(key) => match key {
                 Ok(key) => Ok(key),
@@ -182,7 +183,13 @@ impl<'a, W: Write> Machine<'a, W> {
             }?,
             None => b'\0',
         };
-        match write!(self.term.output, "{}", key as char) {
+        // echo key and place cursor on next line
+        match write!(
+            self.term.output,
+            "{}{}",
+            key as char,
+            termion::cursor::Goto(1, y + 1)
+        ) {
             Ok(_) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
@@ -213,7 +220,8 @@ impl<'a, W: Write> Machine<'a, W> {
         match self.term.output.flush() {
             Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
-        }
+        }?;
+        Ok(())
     }
     fn putsp(&mut self) -> Result<(), String> {
         let mut addr = self.register[0] as usize;
@@ -271,8 +279,8 @@ impl<'a, W: Write> Machine<'a, W> {
             Some(br) => match br {
                 Operand::BR(flag) => {
                     if (flag.n & self.psr.n) | (flag.z & self.psr.z) | (flag.p & self.psr.p) {
-                            self.pc = addr as usize - 2;
-                        };
+                        self.pc = addr as usize - 2;
+                    };
                     Ok(())
                 }
                 _ => Err("br came with something other than flags".to_owned()),
@@ -537,7 +545,7 @@ impl<'a, W: Write> Machine<'a, W> {
     pub fn print_registers(&self) -> String {
         let mut out: String = String::new();
         for (i, reg) in self.register.iter().enumerate() {
-            out += &format!("R{}: {}\t", i, reg);
+            out += &format!("R{}: {}\t ", i, reg);
         }
         out
     }
