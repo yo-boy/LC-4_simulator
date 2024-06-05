@@ -148,14 +148,22 @@ impl<'a, W: Write> Machine<'a, W> {
                 Ok(()) => Ok(()),
                 Err(_) => Err("couldn't write to terminal".to_owned()),
             }?;
+            match self.term.output.flush() {
+                Ok(()) => Ok(()),
+                Err(_) => Err("couldn't write to terminal".to_owned()),
+            }?;
             addr += 1;
             out = self.memory[addr];
         }
         Ok(())
     }
     fn in_trap(&mut self) -> Result<(), String> {
-        match write!(self.term.output, "input: ") {
+        match write!(self.term.output, "\ninput: ") {
             Ok(_) => Ok(()),
+            Err(_) => Err("couldn't write to terminal".to_owned()),
+        }?;
+        match self.term.output.flush() {
+            Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
         let key = match self.term.input.next() {
@@ -167,6 +175,10 @@ impl<'a, W: Write> Machine<'a, W> {
         };
         match write!(self.term.output, "{}", key) {
             Ok(_) => Ok(()),
+            Err(_) => Err("couldn't write to terminal".to_owned()),
+        }?;
+        match self.term.output.flush() {
+            Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
         Ok(self.register[0] = key as i16)
@@ -186,6 +198,10 @@ impl<'a, W: Write> Machine<'a, W> {
         match write!(self.term.output, "{}", out) {
             Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
+        }?;
+        match self.term.output.flush() {
+            Ok(()) => Ok(()),
+            Err(_) => Err("couldn't write to terminal".to_owned()),
         }
     }
     fn putsp(&mut self) -> Result<(), String> {
@@ -199,6 +215,10 @@ impl<'a, W: Write> Machine<'a, W> {
             addr += 1;
             out = self.memory[addr].to_be_bytes();
         }
+        match self.term.output.flush() {
+            Ok(()) => Ok(()),
+            Err(_) => Err("couldn't write to terminal".to_owned()),
+        }?;
         Ok(())
     }
 
@@ -461,7 +481,7 @@ impl<'a, W: Write> Machine<'a, W> {
     // pretty print all info
     fn pretty_print(&self) -> String {
         let mut out = String::new();
-        out += &format!("PC: {}", self.pc);
+        out += &format!("PC: {} ", self.pc);
         //println!("PC: 0x{:04x}", self.pc);
         out += &self.print_registers();
         out += "\n";
