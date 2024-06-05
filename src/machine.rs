@@ -4,6 +4,7 @@ use crate::tokenizer::{check_instruction_double, tokenize, Instruction, Operand,
 use std::io::StdinLock;
 use std::io::Write;
 
+use termion::cursor::DetectCursorPos;
 use ux::u3;
 
 struct TerminalHandles<'a, W: Write> {
@@ -158,7 +159,12 @@ impl<'a, W: Write> Machine<'a, W> {
         Ok(())
     }
     fn in_trap(&mut self) -> Result<(), String> {
-        match write!(self.term.output, "\ninput: ") {
+        let (_x, y) = self.term.output.cursor_pos().unwrap();
+        match write!(
+            self.term.output,
+            "{}input: ",
+            termion::cursor::Goto(1, y + 1)
+        ) {
             Ok(_) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
@@ -173,7 +179,7 @@ impl<'a, W: Write> Machine<'a, W> {
             }?,
             None => '\0' as u8,
         };
-        match write!(self.term.output, "{}", key) {
+        match write!(self.term.output, "{}", key as char) {
             Ok(_) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
