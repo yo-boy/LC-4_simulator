@@ -128,7 +128,10 @@ impl<'a, W: Write> Machine<'a, W> {
                     Operation::LSD => self.lsd(),
                     Operation::LPN => self.lpn(),
                     Operation::CLRP => self.clrp(),
-                    Operation::HALT => Ok(self.halt_flag = false),
+                    Operation::HALT => {
+                        self.halt_flag = false;
+                        Ok(())
+                    }
                     Operation::PUTS => self.puts(),
                     Operation::GETC => self.getc(),
                     Operation::OUT => self.out(),
@@ -177,7 +180,7 @@ impl<'a, W: Write> Machine<'a, W> {
                 Ok(key) => Ok(key),
                 Err(_) => Err("couldn't read input".to_owned()),
             }?,
-            None => '\0' as u8,
+            None => b'\0',
         };
         match write!(self.term.output, "{}", key as char) {
             Ok(_) => Ok(()),
@@ -187,7 +190,8 @@ impl<'a, W: Write> Machine<'a, W> {
             Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
-        Ok(self.register[0] = key as i16)
+        self.register[0] = key as i16;
+        Ok(())
     }
     fn getc(&mut self) -> Result<(), String> {
         let key = match self.term.input.next() {
@@ -195,9 +199,10 @@ impl<'a, W: Write> Machine<'a, W> {
                 Ok(key) => Ok(key),
                 Err(_) => Err("couldn't read input".to_owned()),
             }?,
-            None => '\0' as u8,
+            None => b'\0',
         };
-        Ok(self.register[0] = key as i16)
+        self.register[0] = key as i16;
+        Ok(())
     }
     fn out(&mut self) -> Result<(), String> {
         let out = self.register[0] as u8 as char;
@@ -231,14 +236,16 @@ impl<'a, W: Write> Machine<'a, W> {
     fn str16(&mut self, instruction: Instruction) -> Result<(), String> {
         let addr = self.register[instruction_to_dr(&instruction)?] as usize;
         let value = instruction_to_imm16(&instruction)?;
-        Ok(self.memory[addr] = value as u16)
+        self.memory[addr] = value as u16;
+        Ok(())
     }
 
     fn st(&mut self, instruction: Instruction) -> Result<(), String> {
         let sr = instruction_to_dr(&instruction)?;
         let addr = instruction_to_addr(&instruction)? as usize;
         self.acv_exception(addr)?;
-        Ok(self.memory[addr] = self.register[sr] as u16)
+        self.memory[addr] = self.register[sr] as u16;
+        Ok(())
     }
 
     fn lda(&mut self, instruction: Instruction) -> Result<(), String> {
@@ -246,13 +253,15 @@ impl<'a, W: Write> Machine<'a, W> {
         let addr = instruction_to_addr(&instruction)? as usize;
         let value = self.memory[addr] as i16;
         self.setcc(value);
-        Ok(self.register[dr] = value)
+        self.register[dr] = value;
+        Ok(())
     }
 
     fn jsr(&mut self, instruction: &Instruction) -> Result<(), String> {
         let addr = instruction_to_addr(instruction)? as usize;
         self.register[7] = self.pc as i16;
-        Ok(self.pc = addr)
+        self.pc = addr;
+        Ok(())
     }
 
     // found out how, the pc advances by 2 after BR :skull:
@@ -260,11 +269,12 @@ impl<'a, W: Write> Machine<'a, W> {
         let addr = instruction_to_addr(instruction)?;
         match &instruction.operand1 {
             Some(br) => match br {
-                Operand::BR(flag) => Ok({
+                Operand::BR(flag) => {
                     if (flag.n & self.psr.n) | (flag.z & self.psr.z) | (flag.p & self.psr.p) {
-                        self.pc = addr as usize - 2;
-                    }
-                }),
+                            self.pc = addr as usize - 2;
+                        };
+                    Ok(())
+                }
                 _ => Err("br came with something other than flags".to_owned()),
             },
             None => Err("BR does not have flag".to_owned()),
@@ -272,11 +282,13 @@ impl<'a, W: Write> Machine<'a, W> {
     }
 
     fn clrp(&mut self) -> Result<(), String> {
-        Ok(self.asg.set_seed(0, 0, 0))
+        self.asg.set_seed(0, 0, 0);
+        Ok(())
     }
 
     fn lpn(&mut self) -> Result<(), String> {
-        Ok(self.register[0] = self.asg.clock_16() as i16)
+        self.register[0] = self.asg.clock_16() as i16;
+        Ok(())
     }
 
     fn lsd(&mut self) -> Result<(), String> {
@@ -286,7 +298,8 @@ impl<'a, W: Write> Machine<'a, W> {
         let first = self.memory[addr];
         addr += 1;
         let second = self.memory[addr];
-        Ok(self.asg.set_seed(clock, first, second))
+        self.asg.set_seed(clock, first, second);
+        Ok(())
     }
 
     fn rti(&mut self) -> Result<(), String> {
@@ -303,14 +316,16 @@ impl<'a, W: Write> Machine<'a, W> {
         let dr = instruction_to_dr(&instruction)?;
         let sr = instruction_to_sr1(&instruction)?;
         let value = !self.register[sr];
-        Ok(self.register[dr] = value)
+        self.register[dr] = value;
+        Ok(())
     }
 
     fn str(&mut self, instruction: Instruction) -> Result<(), String> {
         let dest_addr = instruction_to_dr(&instruction)?;
         self.acv_exception(dest_addr)?;
         let value = instruction_to_imm7(&instruction)?;
-        Ok(self.memory[dest_addr] = value as u16)
+        self.memory[dest_addr] = value as u16;
+        Ok(())
     }
 
     fn acv_exception(&mut self, addr: usize) -> Result<(), String> {
@@ -324,7 +339,8 @@ impl<'a, W: Write> Machine<'a, W> {
         let dr = instruction_to_dr(&instruction)?;
         let num = instruction_to_imm7(&instruction)?;
         self.setcc(num);
-        Ok(self.register[dr] = num)
+        self.register[dr] = num;
+        Ok(())
     }
 
     fn jump(&mut self, instruction: Instruction) -> Result<(), String> {
@@ -361,32 +377,38 @@ impl<'a, W: Write> Machine<'a, W> {
             Operation::ADDi16 => {
                 let value = self.register[sr1] + sr2;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::ADDa => {
                 let value = self.register[sr1] + self.memory[sr2 as usize] as i16;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::ANDi16 => {
                 let value = self.register[sr1] & sr2;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::ANDa => {
                 let value = self.register[sr1] & self.memory[sr2 as usize] as i16;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::XORi16 => {
                 let value = self.register[sr1] ^ sr2;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::XORa => {
                 let value = self.register[sr1] ^ self.memory[sr2 as usize] as i16;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             _ => Err("".to_owned()),
         }
@@ -410,32 +432,38 @@ impl<'a, W: Write> Machine<'a, W> {
             Operation::ADD => {
                 let value = self.register[sr1] + self.register[sr2 as usize];
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::ADDi => {
                 let value = self.register[sr1] + sr2;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::AND => {
                 let value = self.register[sr1] & self.register[sr2 as usize];
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::ANDi => {
                 let value = self.register[sr1] & sr2;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::XOR => {
                 let value = self.register[sr1] ^ self.register[sr2 as usize];
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             Operation::XORi => {
                 let value = self.register[sr1] ^ sr2;
                 self.setcc(value);
-                Ok(self.register[dr] = value)
+                self.register[dr] = value;
+                Ok(())
             }
             _ => Err("".to_owned()),
         }
@@ -522,14 +550,14 @@ impl<'a, W: Write> Machine<'a, W> {
 
 fn register_to_index(register: &Operand) -> Result<usize, String> {
     match register {
-        Operand::Register(reg) => Ok(u32::from(reg.clone()) as usize),
+        Operand::Register(reg) => Ok(u32::from(*reg) as usize),
         _ => Err("dr is not a register".to_owned()),
     }
 }
 
 fn instruction_to_dr(instruction: &Instruction) -> Result<usize, String> {
     match &instruction.dr {
-        Some(operand) => register_to_index(&operand),
+        Some(operand) => register_to_index(operand),
         None => Err("no destination register specified".to_owned()),
     }
 }
@@ -537,7 +565,7 @@ fn instruction_to_dr(instruction: &Instruction) -> Result<usize, String> {
 fn instruction_to_addr(instruction: &Instruction) -> Result<i16, String> {
     match &instruction.operand2 {
         Some(addr) => match addr {
-            Operand::Address(addr) => Ok(addr.clone() as i16),
+            Operand::Address(addr) => Ok(*addr as i16),
             _ => Err("incorrect operand2, not address".to_owned()),
         },
         None => Err("no address specified".to_owned()),
@@ -546,14 +574,14 @@ fn instruction_to_addr(instruction: &Instruction) -> Result<i16, String> {
 
 fn instruction_to_sr1(instruction: &Instruction) -> Result<usize, String> {
     match &instruction.operand1 {
-        Some(operand) => register_to_index(&operand),
+        Some(operand) => register_to_index(operand),
         None => Err("no destination register specified".to_owned()),
     }
 }
 
 fn instruction_to_sr2(instruction: &Instruction) -> Result<usize, String> {
     match &instruction.operand2 {
-        Some(operand) => register_to_index(&operand),
+        Some(operand) => register_to_index(operand),
         None => Err("no destination register specified".to_owned()),
     }
 }
@@ -561,7 +589,7 @@ fn instruction_to_sr2(instruction: &Instruction) -> Result<usize, String> {
 fn instruction_to_imm3(instruction: &Instruction) -> Result<i16, String> {
     match &instruction.operand2 {
         Some(number) => match number {
-            Operand::Imm3(number) => Ok(i16::from(number.clone())),
+            Operand::Imm3(number) => Ok(i16::from(*number)),
             _ => Err("incorrect operand 2, not imm3".to_owned()),
         },
         None => Err("no imm3".to_owned()),
@@ -571,7 +599,7 @@ fn instruction_to_imm3(instruction: &Instruction) -> Result<i16, String> {
 fn instruction_to_imm7(instruction: &Instruction) -> Result<i16, String> {
     match &instruction.operand1 {
         Some(number) => match number {
-            Operand::Imm7(number) => Ok(i16::from(number.clone())),
+            Operand::Imm7(number) => Ok(i16::from(*number)),
             _ => Err("incorrect operand 1, not imm7".to_owned()),
         },
         None => Err("no imm7".to_owned()),
@@ -581,7 +609,7 @@ fn instruction_to_imm7(instruction: &Instruction) -> Result<i16, String> {
 fn instruction_to_imm16(instruction: &Instruction) -> Result<i16, String> {
     match &instruction.operand2 {
         Some(number) => match number {
-            Operand::Imm16(number) => Ok(number.clone()),
+            Operand::Imm16(number) => Ok(*number),
             _ => Err("incorrect operand 2, not imm16".to_owned()),
         },
         None => Err("no imm16".to_owned()),

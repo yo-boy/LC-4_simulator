@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use termion::cursor::DetectCursorPos;
 use termion::raw::IntoRawMode;
 use termion::screen::IntoAlternateScreen;
 mod log;
@@ -13,6 +14,8 @@ use reader::read_input_files;
 use std::fs::File;
 use std::io::{stdin, stdout, Read, Write};
 use std::path::PathBuf;
+use std::thread::sleep;
+use std::time::Duration;
 
 fn main() -> Result<(), String> {
     let mut files: Vec<PathBuf> = Vec::new();
@@ -88,5 +91,23 @@ fn main() -> Result<(), String> {
 
     let mut lc4 = Machine::new(Some(out), input, screen);
 
-    lc4.run_machine()
+    let mut screen = stdout()
+        .into_raw_mode()
+        .unwrap()
+        .into_alternate_screen()
+        .unwrap();
+
+    lc4.run_machine()?;
+    let (_x, y) = screen.cursor_pos().unwrap();
+    write!(
+        screen,
+        "{}Halted execution",
+        termion::cursor::Goto(1, y + 1)
+    )
+    .unwrap();
+    screen.flush().unwrap();
+
+    sleep(Duration::from_secs(2));
+
+    Ok(())
 }
