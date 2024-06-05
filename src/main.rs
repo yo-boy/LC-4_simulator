@@ -32,7 +32,7 @@ fn main() -> Result<(), String> {
             .to_owned(),
     );
 
-    File::create("lc4-debug.log").unwrap();
+    File::create("debug.log").unwrap();
 
     let out = read_input_files(&files);
 
