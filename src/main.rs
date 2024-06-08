@@ -39,6 +39,7 @@ fn main() -> Result<(), String> {
 
     let out = read_input_files(&files);
 
+    // log the binary that image that was read
     for (i, val) in out.iter().enumerate().filter(|(_i, x)| **x != 0) {
         log(&format!("{}: {:016b}\n", i, val));
     }
@@ -70,6 +71,8 @@ fn main() -> Result<(), String> {
     )
     .unwrap();
     screen.flush().unwrap();
+
+    // "\x1b[2J" "\x1b[H"
 
     // while key != '\x1B' {
     //     key = match input.next() {

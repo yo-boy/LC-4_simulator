@@ -146,9 +146,9 @@ impl<'a, W: Write> Machine<'a, W> {
 
     fn puts(&mut self) -> Result<(), String> {
         let mut addr = self.register[0] as usize;
-        let mut out = self.memory[addr];
-        while out != 0x0000 {
-            match write!(self.term.output, "{}", out as u8 as char) {
+        let mut out = self.memory[addr].to_be_bytes()[1] as char;
+        while out != 0x0000 as char {
+            match write!(self.term.output, "{}", out) {
                 Ok(()) => Ok(()),
                 Err(_) => Err("couldn't write to terminal".to_owned()),
             }?;
@@ -157,7 +157,7 @@ impl<'a, W: Write> Machine<'a, W> {
                 Err(_) => Err("couldn't write to terminal".to_owned()),
             }?;
             addr += 1;
-            out = self.memory[addr];
+            out = self.memory[addr].to_be_bytes()[1] as char;
         }
         Ok(())
     }
@@ -212,7 +212,7 @@ impl<'a, W: Write> Machine<'a, W> {
         Ok(())
     }
     fn out(&mut self) -> Result<(), String> {
-        let out = self.register[0] as u8 as char;
+        let out = self.register[0].to_be_bytes()[1] as char;
         match write!(self.term.output, "{}", out) {
             Ok(()) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
