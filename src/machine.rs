@@ -267,8 +267,8 @@ impl<'a, W: Write> Machine<'a, W> {
 
     fn jsr(&mut self, instruction: &Instruction) -> Result<(), String> {
         let addr = instruction_to_addr(instruction)? as usize;
-        self.register[7] = self.pc as i16;
-        self.pc = addr;
+        self.register[7] = self.pc as i16 + 2;
+        self.pc = addr - 2;
         Ok(())
     }
 
@@ -490,14 +490,20 @@ impl<'a, W: Write> Machine<'a, W> {
                 let mut out = String::new();
                 if check_instruction_double(self.memory[self.pc]) {
                     out += &format!(
-                        "exectuing: {:?}\n",
+                        "{:016b}\n{:016b}\nexectuing: {:?}\n",
+                        self.memory[self.pc],
+                        self.memory[self.pc + 1],
                         tokenize(self.memory[self.pc], Some(self.memory[self.pc + 1]))?
                     );
                     self.simulate_instruction()?;
                     out += &self.pretty_print();
                     self.pc += 2;
                 } else {
-                    out += &format!("executing: {:?}\n", tokenize(self.memory[self.pc], None)?);
+                    out += &format!(
+                        "{:016b}\nexecuting: {:?}\n",
+                        self.memory[self.pc],
+                        tokenize(self.memory[self.pc], None)?
+                    );
                     self.simulate_instruction()?;
                     out += &self.pretty_print();
                     self.pc += 1;
