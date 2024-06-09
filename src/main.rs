@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use termion::cursor::DetectCursorPos;
 use termion::raw::IntoRawMode;
 use termion::screen::IntoAlternateScreen;
 mod log;
@@ -102,13 +101,8 @@ fn main() -> Result<(), String> {
         .unwrap();
 
     lc4.run_machine()?;
-    let (_x, y) = screen.cursor_pos().unwrap();
-    write!(
-        screen,
-        "{}Halted execution",
-        termion::cursor::Goto(1, y + 1)
-    )
-    .unwrap();
+    //let (_x, y) = screen.cursor_pos().unwrap();
+    write!(screen, "{}{}{} Halted execution", '\r', '\n', '\n').unwrap();
     screen.flush().unwrap();
 
     sleep(Duration::from_secs(2));

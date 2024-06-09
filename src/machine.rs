@@ -4,7 +4,6 @@ use crate::tokenizer::{check_instruction_double, tokenize, Instruction, Operand,
 use std::io::StdinLock;
 use std::io::Write;
 
-use termion::cursor::DetectCursorPos;
 use ux::u3;
 
 struct TerminalHandles<'a, W: Write> {
@@ -163,10 +162,10 @@ impl<'a, W: Write> Machine<'a, W> {
     }
     fn in_trap(&mut self) -> Result<(), String> {
         // get cursor position
-        let (_x, y) = self.term.output.cursor_pos().unwrap();
-        let y = y + 1;
+        //let (_x, y) = self.term.output.cursor_pos().unwrap();
+        //let y = y + 1;
         // go to next line and print input prompt for user
-        match write!(self.term.output, "{}input: ", termion::cursor::Goto(1, y)) {
+        match write!(self.term.output, "{}{}input: ", '\n', '\r') {
             Ok(_) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
@@ -184,12 +183,7 @@ impl<'a, W: Write> Machine<'a, W> {
             None => b'\0',
         };
         // echo key and place cursor on next line
-        match write!(
-            self.term.output,
-            "{}{}",
-            key as char,
-            termion::cursor::Goto(1, y + 1)
-        ) {
+        match write!(self.term.output, "{}{}{}", key as char, '\n', '\r') {
             Ok(_) => Ok(()),
             Err(_) => Err("couldn't write to terminal".to_owned()),
         }?;
@@ -301,12 +295,12 @@ impl<'a, W: Write> Machine<'a, W> {
     }
 
     fn lsd(&mut self) -> Result<(), String> {
-        let mut addr = self.register[0] as usize;
-        let clock = self.memory[addr];
-        addr += 1;
-        let first = self.memory[addr];
-        addr += 1;
-        let second = self.memory[addr];
+        //        let mut addr = self.register[0] as usize;
+        let clock = self.register[0] as u16;
+        // addr += 1;
+        let first = self.register[1] as u16;
+        // addr += 1;
+        let second = self.register[2] as u16;
         self.asg.set_seed(clock, first, second);
         Ok(())
     }
@@ -581,6 +575,7 @@ fn instruction_to_addr(instruction: &Instruction) -> Result<i16, String> {
     match &instruction.operand2 {
         Some(addr) => match addr {
             Operand::Address(addr) => Ok(*addr as i16),
+            Operand::Imm16(num) => Ok(*num as i16),
             _ => Err("incorrect operand2, not address".to_owned()),
         },
         None => Err("no address specified".to_owned()),
