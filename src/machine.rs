@@ -279,7 +279,7 @@ impl<'a, W: Write> Machine<'a, W> {
             Some(br) => match br {
                 Operand::BR(flag) => {
                     if (flag.n & self.psr.n) | (flag.z & self.psr.z) | (flag.p & self.psr.p) {
-                        self.pc = addr as usize;
+                        self.pc = addr as usize - 2;
                     };
                     Ok(())
                 }
