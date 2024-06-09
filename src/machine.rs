@@ -223,10 +223,11 @@ impl<'a, W: Write> Machine<'a, W> {
         }?;
         Ok(())
     }
+
     fn putsp(&mut self) -> Result<(), String> {
         let mut addr = self.register[0] as usize;
         let mut out = self.memory[addr].to_be_bytes();
-        while out[1] != 0x00 {
+        while out[0] != 0x00 {
             match write!(self.term.output, "{}{}", out[0] as char, out[1] as char) {
                 Ok(()) => Ok(()),
                 Err(_) => Err("couldn't write to terminal".to_owned()),
