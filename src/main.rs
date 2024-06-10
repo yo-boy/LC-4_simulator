@@ -47,8 +47,8 @@ fn main() -> Result<(), String> {
     // Switch to raw mode and use an alternate screen
     let mut screen = stdout()
         .into_raw_mode()
-        .unwrap()
-        .into_alternate_screen()
+        //.unwrap()
+        //.into_alternate_screen()
         .unwrap();
 
     // Create a handle for standard input
@@ -71,37 +71,15 @@ fn main() -> Result<(), String> {
     .unwrap();
     screen.flush().unwrap();
 
-    // "\x1b[2J" "\x1b[H"
-
-    // while key != '\x1B' {
-    //     key = match input.next() {
-    //         Some(key) => key.unwrap() as char,
-    //         None => todo!(),
-    //     };
-    //     if key != '\r' {
-    //         x += 1;
-    //         write!(screen, "{}", key).unwrap();
-    //     } else {
-    //         x = 1;
-    //         y += 1;
-    //         write!(screen, "{}\n", cursor::Goto(x, y)).unwrap();
-    //     }
-    //     screen.flush().unwrap();
-    // }
-
-    //let test = 0x3Eu16;
-    //write!(screen, "{}", test as u8 as char).unwrap();
-
     let mut lc4 = Machine::new(Some(out), input, screen);
 
     let mut screen = stdout()
         .into_raw_mode()
-        .unwrap()
-        .into_alternate_screen()
+        //.unwrap()
+        //.into_alternate_screen()
         .unwrap();
 
     lc4.run_machine()?;
-    //let (_x, y) = screen.cursor_pos().unwrap();
     write!(screen, "{}{}{} Halted execution", '\r', '\n', '\n').unwrap();
     screen.flush().unwrap();
 

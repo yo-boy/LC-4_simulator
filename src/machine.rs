@@ -529,8 +529,21 @@ impl<'a, W: Write> Machine<'a, W> {
         out += &self.print_registers();
         out += "\n";
         out += &self.print_pretty_memory();
+        out += &self.print_nzp();
+        out += &self.print_asg();
         out += "\n";
         out
+    }
+
+    fn print_asg(&self) -> String {
+        format!(
+            "clock:0x{:04x} first:0x{:04x} second:0x{:04x}\n",
+            self.asg.clock.state, self.asg.first.state, self.asg.second.state
+        )
+    }
+
+    fn print_nzp(&self) -> String {
+        format!("n: {} z: {} p: {}\n", self.psr.n, self.psr.z, self.psr.p)
     }
 
     // print memory around PC

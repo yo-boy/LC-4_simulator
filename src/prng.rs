@@ -1,7 +1,7 @@
 #[derive(PartialEq)]
 pub struct LFSR {
     // holds the state of the 16 bit lfsr
-    state: u16,
+    pub state: u16,
 }
 
 impl LFSR {
@@ -28,9 +28,9 @@ impl LFSR {
 #[derive(PartialEq)]
 pub struct ASG {
     // three LFSRs that represent a physical ASG
-    clock: LFSR,
-    first: LFSR,
-    second: LFSR,
+    pub clock: LFSR,
+    pub first: LFSR,
+    pub second: LFSR,
 }
 
 impl ASG {

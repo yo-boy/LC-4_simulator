@@ -9,3 +9,6 @@ edition = "2021"
 clap = { version = "4.5.4", features = ["cargo"] }
 ux = "0.1.5"
 termion = "*"
+
+[profile.dev]
+overflow-checks = false
