@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use termion::raw::IntoRawMode;
-use termion::screen::IntoAlternateScreen;
 mod log;
 mod machine;
 mod prng;
@@ -45,11 +44,7 @@ fn main() -> Result<(), String> {
     log(&"\n");
 
     // Switch to raw mode and use an alternate screen
-    let mut screen = stdout()
-        .into_raw_mode()
-        //.unwrap()
-        //.into_alternate_screen()
-        .unwrap();
+    let mut screen = stdout().into_raw_mode().unwrap();
 
     // Create a handle for standard input
     let input = stdin().lock();
@@ -73,11 +68,7 @@ fn main() -> Result<(), String> {
 
     let mut lc4 = Machine::new(Some(out), input, screen);
 
-    let mut screen = stdout()
-        .into_raw_mode()
-        //.unwrap()
-        //.into_alternate_screen()
-        .unwrap();
+    let mut screen = stdout().into_raw_mode().unwrap();
 
     lc4.run_machine()?;
     write!(screen, "{}{}{} Halted execution", '\r', '\n', '\n').unwrap();
