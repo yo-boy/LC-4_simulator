@@ -19,13 +19,7 @@ struct PSR {
     z: bool,
 }
 
-struct Position {
-    x: u16,
-    y: u16,
-}
-
 pub struct Machine<'a, W: Write> {
-    cursor: Position,
     // implementing a buffer would be more consistent with the hardware
     //input_buffer: Vec<u8>,
     term: TerminalHandles<'a, W>,
@@ -47,8 +41,6 @@ impl<'a, W: Write> Machine<'a, W> {
         output: W,
     ) -> Machine<W> {
         Machine {
-            cursor: Position { x: 1, y: 1 },
-            //input_buffer: Vec::new(),
             term: TerminalHandles { input, output },
             halt_flag: true,
             asg: ASG::new(),
@@ -161,9 +153,6 @@ impl<'a, W: Write> Machine<'a, W> {
         Ok(())
     }
     fn in_trap(&mut self) -> Result<(), String> {
-        // get cursor position
-        //let (_x, y) = self.term.output.cursor_pos().unwrap();
-        //let y = y + 1;
         // go to next line and print input prompt for user
         match write!(self.term.output, "{}{}input: ", '\n', '\r') {
             Ok(_) => Ok(()),
@@ -505,21 +494,9 @@ impl<'a, W: Write> Machine<'a, W> {
                 }
                 log(&out);
             }
-            // this can work, but it needs to be in a seperate thread, later, for now let's not give an exit.
-            // key = match self.term.input.next() {
-            //     Some(key) => key.unwrap(),
-            //     None => '\0' as u8,
-            // };
-            // if key != '\0' as u8 {
-            //     self.input_buffer.push(key)
-            // }
         }
         Ok(())
     }
-
-    // fn cleanup(&mut self) {
-    //     //self.term.output.into_main_screen();
-    // }
 
     // pretty print all info
     fn pretty_print(&self) -> String {
@@ -563,11 +540,6 @@ impl<'a, W: Write> Machine<'a, W> {
         }
         out
     }
-
-    // print all the modified parts of memory in a pretty way
-    //fn print_modified_memory(&self) {
-    //    todo!()
-    //}
 }
 
 fn register_to_index(register: &Operand) -> Result<usize, String> {
